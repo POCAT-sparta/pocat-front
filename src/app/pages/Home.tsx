@@ -1,5 +1,5 @@
-import { ProductCard } from "../components/ProductCard";
-import { AuctionCard } from "../components/AuctionCard";
+import { ProductCard } from "../../shared/components/ProductCard";
+import { AuctionCard } from "../../features/auction/components/AuctionCard";
 import { Flame, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 
