@@ -1,10 +1,14 @@
-import { Link, useLocation } from "react-router";
-import { Search, ShoppingBag, User, Menu } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { Search, User, Menu, LogIn } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../../features/auth/context/AuthContext";
+import { toast } from "sonner";
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
 
   const navItems = [
     { path: "/", label: "홈" },
@@ -12,6 +16,16 @@ export function Header() {
     { path: "/auctions", label: "경매" },
     { path: "/flash-sale", label: "특별 이벤트" },
   ];
+
+  async function handleLogout() {
+    try {
+      await logout();
+      toast.success("로그아웃 되었습니다.");
+      navigate("/");
+    } catch {
+      toast.error("로그아웃에 실패했습니다.");
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -51,13 +65,39 @@ export function Header() {
               />
             </div>
 
-            <button className="p-2 hover:bg-muted rounded-lg transition-colors">
-              <ShoppingBag className="w-5 h-5" />
-            </button>
-
-            <Link to="/profile" className="p-2 hover:bg-muted rounded-lg transition-colors">
-              <User className="w-5 h-5" />
-            </Link>
+            {isAuthenticated ? (
+              <div className="hidden md:flex items-center gap-2">
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm"
+                >
+                  <User className="w-4 h-4" />
+                  <span>{user?.nickname}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm text-muted-foreground"
+                >
+                  로그아웃
+                </button>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm"
+                >
+                  <LogIn className="w-4 h-4" />
+                  로그인
+                </Link>
+                <Link
+                  to="/signup"
+                  className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors"
+                >
+                  회원가입
+                </Link>
+              </div>
+            )}
 
             <button
               className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
@@ -93,6 +133,43 @@ export function Header() {
                   {item.label}
                 </Link>
               ))}
+              <div className="border-t pt-2 mt-2">
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm hover:bg-muted"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <User className="w-4 h-4" />
+                      {user?.nickname}
+                    </Link>
+                    <button
+                      onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                      className="w-full text-left px-4 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted"
+                    >
+                      로그아웃
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      className="block px-4 py-2 rounded-lg text-sm hover:bg-muted"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      로그인
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="block px-4 py-2 rounded-lg text-sm hover:bg-muted"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      회원가입
+                    </Link>
+                  </>
+                )}
+              </div>
             </nav>
           </div>
         )}

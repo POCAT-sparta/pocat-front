@@ -1,98 +1,30 @@
-import { ProductCard } from "../../shared/components/ProductCard";
+import { useEffect, useState } from "react";
 import { AuctionCard } from "../../features/auction/components/AuctionCard";
+import { TradePostCard } from "../../features/community/components/TradePostCard";
 import { Flame, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { Link } from "react-router";
+import { getAuctions } from "../../features/auction/api/auctionApi";
+import { getTradePosts } from "../../features/community/api/postApi";
+import type { AuctionListItem } from "../../features/auction/types/auction.types";
+import type { TradePostListItem } from "../../features/community/types/post.types";
 
 export function Home() {
-  const featuredProducts = [
-    {
-      id: "1",
-      name: "리자몽 VMAX SSR",
-      image: "https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&h=560&fit=crop",
-      price: 580000,
-      instantBuyPrice: 550000,
-      lastSalePrice: 565000,
-      priceChange: 2.7,
-      rarity: "SSR",
-      set: "샤이닝펄스"
-    },
-    {
-      id: "2",
-      name: "뮤츠 V SR",
-      image: "https://images.unsplash.com/photo-1613771404721-1f92d799e49f?w=400&h=560&fit=crop",
-      price: 180000,
-      instantBuyPrice: 170000,
-      lastSalePrice: 175000,
-      priceChange: -1.4,
-      rarity: "SR",
-      set: "진화의함성"
-    },
-    {
-      id: "3",
-      name: "피카츄 AR",
-      image: "https://images.unsplash.com/photo-1542779283-429940ce8336?w=400&h=560&fit=crop",
-      price: 95000,
-      instantBuyPrice: 90000,
-      lastSalePrice: 92000,
-      priceChange: 3.3,
-      rarity: "AR",
-      set: "트리플렛비트"
-    },
-    {
-      id: "4",
-      name: "이브이 히어로즈 세트",
-      image: "https://images.unsplash.com/photo-1611954267147-1da7fdb8fe0c?w=400&h=560&fit=crop",
-      price: 450000,
-      instantBuyPrice: 430000,
-      lastSalePrice: 440000,
-      priceChange: 1.1,
-      rarity: "SET",
-      set: "이브이 히어로즈"
-    }
-  ];
+  const [liveAuctions, setLiveAuctions] = useState<AuctionListItem[]>([]);
+  const [isAuctionLoading, setIsAuctionLoading] = useState(true);
+  const [featuredPosts, setFeaturedPosts] = useState<TradePostListItem[]>([]);
+  const [isPostLoading, setIsPostLoading] = useState(true);
 
-  const liveAuctions = [
-    {
-      id: "5",
-      name: "리자몽 1st Edition PSA 10",
-      image: "https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&h=560&fit=crop",
-      currentBid: 3200000,
-      bidCount: 47,
-      endsAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
-      rarity: "PSA 10",
-      set: "베이스 세트"
-    },
-    {
-      id: "6",
-      name: "피카츄 프로모 골드 스타",
-      image: "https://images.unsplash.com/photo-1542779283-429940ce8336?w=400&h=560&fit=crop",
-      currentBid: 850000,
-      bidCount: 23,
-      endsAt: new Date(Date.now() + 5 * 60 * 60 * 1000),
-      rarity: "PROMO",
-      set: "월드챔피언십"
-    },
-    {
-      id: "7",
-      name: "에이스번 VMAX HR",
-      image: "https://images.unsplash.com/photo-1613771404721-1f92d799e49f?w=400&h=560&fit=crop",
-      currentBid: 125000,
-      bidCount: 12,
-      endsAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
-      rarity: "HR",
-      set: "창공스트림"
-    },
-    {
-      id: "8",
-      name: "뮤 UR 풀아트",
-      image: "https://images.unsplash.com/photo-1611954267147-1da7fdb8fe0c?w=400&h=560&fit=crop",
-      currentBid: 290000,
-      bidCount: 31,
-      endsAt: new Date(Date.now() + 12 * 60 * 60 * 1000),
-      rarity: "UR",
-      set: "퓨전아츠"
-    }
-  ];
+  useEffect(() => {
+    getAuctions({ size: 4, sort: "endedAt,asc" })
+      .then((res) => setLiveAuctions(res.content))
+      .catch(() => {})
+      .finally(() => setIsAuctionLoading(false));
+
+    getTradePosts({ size: 4, sort: "createdAt,desc" })
+      .then((res) => setFeaturedPosts(res.content))
+      .catch(() => {})
+      .finally(() => setIsPostLoading(false));
+  }, []);
 
   const flashSaleProducts = [
     {
@@ -212,11 +144,27 @@ export function Home() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} {...product} />
-          ))}
-        </div>
+        {isPostLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-card border rounded-lg overflow-hidden animate-pulse">
+                <div className="aspect-[3/4] bg-muted" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                  <div className="h-4 bg-muted rounded w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : featuredPosts.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">등록된 상품이 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {featuredPosts.map((post) => (
+              <TradePostCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="container mx-auto px-4 py-12">
@@ -230,11 +178,27 @@ export function Home() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {liveAuctions.map((auction) => (
-            <AuctionCard key={auction.id} {...auction} />
-          ))}
-        </div>
+        {isAuctionLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-card border rounded-lg overflow-hidden animate-pulse">
+                <div className="aspect-[3/4] bg-muted" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                  <div className="h-4 bg-muted rounded w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : liveAuctions.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">진행 중인 경매가 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {liveAuctions.map((auction) => (
+              <AuctionCard key={auction.auctionId} auction={auction} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="bg-muted py-12">

@@ -1,35 +1,18 @@
 import { Link } from "react-router";
-import { Clock, Users } from "lucide-react";
+import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { AuctionListItem } from "../types/auction.types";
 
 interface AuctionCardProps {
-  id: string;
-  name: string;
-  image: string;
-  currentBid: number;
-  bidCount: number;
-  endsAt: Date;
-  rarity: string;
-  set: string;
+  auction: AuctionListItem;
 }
 
-export function AuctionCard({
-  id,
-  name,
-  image,
-  currentBid,
-  bidCount,
-  endsAt,
-  rarity,
-  set,
-}: AuctionCardProps) {
+export function AuctionCard({ auction }: AuctionCardProps) {
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
     const updateTimer = () => {
-      const now = new Date().getTime();
-      const end = new Date(endsAt).getTime();
-      const distance = end - now;
+      const distance = new Date(auction.endedAt).getTime() - Date.now();
 
       if (distance < 0) {
         setTimeLeft("종료");
@@ -45,22 +28,27 @@ export function AuctionCard({
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
-
     return () => clearInterval(interval);
-  }, [endsAt]);
+  }, [auction.endedAt]);
 
   return (
-    <Link to={`/product/${id}`} className="group">
+    <Link to={`/auctions/${auction.auctionId}`} className="group">
       <div className="bg-card rounded-lg overflow-hidden border hover:shadow-lg transition-all">
         <div className="aspect-[3/4] bg-muted relative overflow-hidden">
-          <img
-            src={image}
-            alt={name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-          />
+          {auction.cardImageUrl ? (
+            <img
+              src={auction.cardImageUrl}
+              alt={auction.cardName}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+              이미지 없음
+            </div>
+          )}
           <div className="absolute top-2 left-2">
             <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs">
-              {rarity}
+              {auction.grade}
             </span>
           </div>
           <div className="absolute top-2 right-2">
@@ -71,26 +59,28 @@ export function AuctionCard({
         </div>
 
         <div className="p-4">
-          <div className="text-xs text-muted-foreground mb-1">{set}</div>
-          <h3 className="font-medium mb-3 line-clamp-2 min-h-[2.5rem]">{name}</h3>
+          <div className="text-xs text-muted-foreground mb-1">{auction.cardName}</div>
+          <h3 className="font-medium mb-3 line-clamp-2 min-h-[2.5rem] text-sm">{auction.title}</h3>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">현재 입찰가</span>
-              <span className="font-bold text-red-500">
-                {currentBid.toLocaleString()}원
+              <span className="font-bold text-red-500 text-sm">
+                {auction.highestPrice.toLocaleString()}원
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Users className="w-3 h-3" />
-                <span className="text-xs">{bidCount}명 입찰</span>
+            {auction.buyoutPrice > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">즉시 구매가</span>
+                <span className="text-xs text-muted-foreground">
+                  {auction.buyoutPrice.toLocaleString()}원
+                </span>
               </div>
-            </div>
+            )}
 
             <div className="flex items-center gap-2 pt-2 border-t">
-              <Clock className="w-4 h-4 text-muted-foreground" />
+              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-xs text-muted-foreground">{timeLeft}</span>
             </div>
           </div>
