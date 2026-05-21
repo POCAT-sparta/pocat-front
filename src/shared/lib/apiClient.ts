@@ -1,21 +1,37 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
+function getCookie(name: string) {
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1] ?? null;
+}
+
+function setCookie(name: string, value: string, days = 7) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Strict`;
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+}
+
 function getAccessToken() {
-  return localStorage.getItem("accessToken");
+  return getCookie("accessToken");
 }
 
 function getRefreshToken() {
-  return localStorage.getItem("refreshToken");
+  return getCookie("refreshToken");
 }
 
 export function setTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem("accessToken", accessToken);
-  localStorage.setItem("refreshToken", refreshToken);
+  setCookie("accessToken", accessToken);
+  setCookie("refreshToken", refreshToken);
 }
 
 export function clearTokens() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
+  deleteCookie("accessToken");
+  deleteCookie("refreshToken");
 }
 
 async function refreshTokens(): Promise<boolean> {

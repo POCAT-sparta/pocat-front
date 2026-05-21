@@ -2,14 +2,14 @@ import { createBrowserRouter } from "react-router";
 import { Root } from "./pages/Root";
 import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
-import { Marketplace } from "../features/community/pages/Marketplace";
-import { ProductDetail } from "../features/community/pages/ProductDetail";
-import { Auctions } from "../features/auction/pages/Auctions";
-import { AuctionDetail } from "../features/auction/pages/AuctionDetail";
-import { FlashSale } from "../features/auction/pages/FlashSale";
-import { Profile } from "../features/user/pages/Profile";
-import { Login } from "../features/auth/pages/Login";
-import { Signup } from "../features/auth/pages/Signup";
+import { Marketplace } from "@/app/community/pages/Marketplace";
+import { ProductDetail } from "@/app/community/pages/ProductDetail";
+import { Auctions } from "@/app/auction/pages/Auctions";
+import { AuctionDetail } from "@/app/auction/pages/AuctionDetail";
+import { FlashSale } from "@/app/auction/pages/FlashSale";
+import { Profile } from "@/app/user/pages/Profile";
+import { Login } from "@/app/auth/pages/Login";
+import { Signup } from "@/app/auth/pages/Signup";
 
 export const router = createBrowserRouter([
   {

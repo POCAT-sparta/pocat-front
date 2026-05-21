@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { AuctionCard } from "../../features/auction/components/AuctionCard";
-import { TradePostCard } from "../../features/community/components/TradePostCard";
+import { AuctionCard } from "@/app/auction/components/AuctionCard";
+import { TradePostCard } from "@/app/community/components/TradePostCard";
 import { Flame, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { Link } from "react-router";
-import { getAuctions } from "../../features/auction/api/auctionApi";
-import { getTradePosts } from "../../features/community/api/postApi";
-import type { AuctionListItem } from "../../features/auction/types/auction.types";
-import type { TradePostListItem } from "../../features/community/types/post.types";
+import { getAuctions } from "@/api/auction/auctionApi.ts";
+import { getTradePosts } from "@/api/community/tradeCommunityApi.ts";
+import type { AuctionListItem } from "@/app/auction/types/auction.types";
+import type { TradePostListItem } from "@/app/community/types/post.types";
 
 export function Home() {
   const [liveAuctions, setLiveAuctions] = useState<AuctionListItem[]>([]);

@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import { Search, User, Menu, LogIn } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "../../features/auth/context/AuthContext";
+import { useAuth } from "@/app/auth/context/AuthContext";
 import { toast } from "sonner";
 
 export function Header() {
