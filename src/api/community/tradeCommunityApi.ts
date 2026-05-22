@@ -5,7 +5,7 @@ import type {
     TradePostDetail,
     TradePostListParams,
     CreateTradePostRequest,
-} from "@/app/community/types/post.types";
+} from "@/types/community.types";
 
 export async function getTradePosts(params: TradePostListParams = {}): Promise<PageResponse<TradePostListItem>> {
     const query = new URLSearchParams();

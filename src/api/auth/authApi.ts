@@ -5,7 +5,7 @@ import {
   SignupResponse,
   LoginRequest,
   LoginResponse, ReissueRequest, ReissueResponse,
-} from "@/app/auth/types/auth.types.ts";
+} from "@/types/auth.types";
 
 export async function signup(data: SignupRequest): Promise<SignupResponse> {
   const res = await apiClient.post<ApiResponse<SignupResponse>>(

@@ -1,5 +1,5 @@
 import type {ApiResponse, PageResponse} from "@/shared/types/api.ts";
-import {BidItem, BuyoutResponse, PlaceBidRequest, PlaceBidResponse} from "@/app/auction/types/auction.types.ts";
+import type { BidItem, BuyoutResponse, PlaceBidRequest, PlaceBidResponse } from "@/types/auction.types";
 import {apiClient} from "@/shared/lib/apiClient.ts";
 
 export async function getAuctionBids(

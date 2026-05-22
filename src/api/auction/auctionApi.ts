@@ -4,7 +4,7 @@ import {
   AuctionListParams,
   MyAuctionParams, CreateAuctionRequest, CreateAuctionResponse,
   UpdateAuctionRequest, UpdateAuctionResponse, CancelAuctionResponse,
-} from "@/app/auction/types/auction.types";
+} from "@/types/auction.types";
 import { apiClient } from "@/shared/lib/apiClient.ts";
 import type { ApiResponse, PageResponse } from "@/shared/types/api.ts";
 

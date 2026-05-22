@@ -5,8 +5,8 @@ import { Flame, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import { getAuctions } from "@/api/auction/auctionApi.ts";
 import { getTradePosts } from "@/api/community/tradeCommunityApi.ts";
-import type { AuctionListItem } from "@/app/auction/types/auction.types";
-import type { TradePostListItem } from "@/app/community/types/post.types";
+import type { AuctionListItem } from "@/types/auction.types";
+import type { TradePostListItem } from "@/types/community.types";
 
 export function Home() {
   const [liveAuctions, setLiveAuctions] = useState<AuctionListItem[]>([]);

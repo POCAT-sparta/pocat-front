@@ -31,7 +31,7 @@ export interface AuctionListParams {
   grade?: string;
   page?: number;
   size?: number;
-  cardCategory? : "POKEMON" | "TRAINERS" | "ENERGY" | "UNKNOWN";
+  cardCategory?: "POKEMON" | "TRAINERS" | "ENERGY" | "UNKNOWN";
   sort?: string;
 }
 
@@ -43,7 +43,6 @@ export interface MyAuctionParams {
   size?: number;
   sort?: string;
 }
-
 
 export interface UpdateAuctionRequest {
   title?: string;
