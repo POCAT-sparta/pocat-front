@@ -40,6 +40,14 @@ export async function createTradePost(data: CreateTradePostRequest): Promise<{ i
     return res.data;
 }
 
+export async function updateTradePost(tradePostId: number, data: import("@/types/community.types").UpdateTradePostRequest): Promise<TradePostDetail> {
+    const res = await apiClient.patch<ApiResponse<TradePostDetail>>(
+        `/api/v1/posts/trade/${tradePostId}`,
+        data
+    );
+    return res.data;
+}
+
 export async function deleteTradePost(tradePostId: number): Promise<void> {
     await apiClient.delete<ApiResponse<null>>(`/api/v1/posts/trade/${tradePostId}`);
 }

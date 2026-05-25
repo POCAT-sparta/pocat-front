@@ -37,6 +37,13 @@ export interface CreateTradePostRequest {
   thumbnail?: string;
 }
 
+export interface UpdateTradePostRequest {
+  title?: string;
+  content?: string;
+  price?: number;
+  thumbnail?: string;
+}
+
 export interface FreePostResponse {
   id: number;
   authorId: number;
