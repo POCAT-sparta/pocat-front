@@ -19,7 +19,7 @@ function now() {
 
 function ChatModal({ sellerNickname, onClose }: { sellerNickname: string; onClose: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 0, sender: "seller", text: `안녕하세요! 판매글에 관심 가져주셔서 감사합니다 🎴`, time: now() },
+    { id: 0, sender: "seller", text: `안녕하세요! 판매글에 관심 가져주셔서 감사합니다 ⚡`, time: now() },
   ]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -206,8 +206,13 @@ export function TradeBoardDetail() {
               {post.thumbnail ? (
                 <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-6xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e]">
-                  🎴
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1a1a2e] to-[#16213e]">
+                  <svg viewBox="0 0 80 112" className="w-20 h-28 opacity-20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="76" height="108" rx="6" stroke="white" strokeWidth="3" />
+                    <circle cx="40" cy="50" r="20" stroke="white" strokeWidth="2.5" />
+                    <path d="M20 50 H60" stroke="white" strokeWidth="2.5" />
+                    <circle cx="40" cy="50" r="6" fill="white" />
+                  </svg>
                 </div>
               )}
             </div>

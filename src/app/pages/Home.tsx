@@ -10,10 +10,10 @@ import type { AuctionListItem } from "@/types/auction.types";
 import type { LikeResponse } from "@/types/like.types";
 import type { CardGrade, CardResponse } from "@/types/card.types";
 
-const MOCK_CARDS: { imageUrl: string; name: string; grade: CardGrade }[] = [
-  { imageUrl: "https://images.pokemontcg.io/swsh12pt5/160_hires.png", name: "Radiant Charizard", grade: "PSA_10" },
-  { imageUrl: "https://images.pokemontcg.io/sm115/7_hires.png", name: "Radiant Alakazam", grade: "BGS_10" },
-  { imageUrl: "https://images.pokemontcg.io/swsh12pt5/162_hires.png", name: "Radiant Blastoise", grade: "PSA_9" },
+const MOCK_CARDS: { auctionId: number; imageUrl: string; name: string; grade: CardGrade; price: number; buyoutPrice: number }[] = [
+  { auctionId: 1, imageUrl: "https://images.pokemontcg.io/swsh12pt5/160_hires.png", name: "Radiant Charizard",  grade: "PSA_10", price: 1200000, buyoutPrice: 3000000 },
+  { auctionId: 2, imageUrl: "https://images.pokemontcg.io/sm115/7_hires.png",        name: "Radiant Alakazam",   grade: "BGS_10", price: 450000,  buyoutPrice: 1500000 },
+  { auctionId: 3, imageUrl: "https://images.pokemontcg.io/swsh12pt5/162_hires.png",  name: "Radiant Blastoise", grade: "PSA_9",  price: 320000,  buyoutPrice: 900000  },
 ];
 
 const PIKACHU_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png";
@@ -102,7 +102,7 @@ function AuctionMiniCard({ imageUrl, cardName, grade, highestPrice, endedAt, to 
         {imageUrl ? (
           <img src={imageUrl} alt={cardName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         ) : (
-          <div className="w-full h-full flex items-cent이제 er justify-center text-[10px] text-muted-foreground">이미지 없음</div>
+          <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">이미지 없음</div>
         )}
         <span className={`absolute top-1 left-1 text-[9px] px-1.5 py-0.5 rounded-full ${gradeBadgeClass(grade)}`}>
           {grade}
@@ -402,7 +402,7 @@ export function Home() {
               </div>
             ) : myLikes.length === 0 ? (
               <div className="flex items-center gap-3 py-4 px-5 bg-pink-50 dark:bg-pink-950/20 rounded-xl border border-pink-100 dark:border-pink-900 text-sm text-pink-600 dark:text-pink-300">
-                <span className="text-2xl">🎴</span>
+                <span className="text-2xl">💰</span>
                 관심 경매가 없습니다. 카드에 ♥ 를 눌러 추가해보세요!
               </div>
             ) : (
@@ -484,13 +484,21 @@ export function Home() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {MOCK_CARDS.map((card) => (
-                  <div key={card.name} className="flex flex-col">
+                  <div
+                    key={card.name}
+                    onClick={() => navigate(`/auctions/${card.auctionId}`)}
+                    className="flex flex-col cursor-pointer group"
+                  >
                     <CardItem imageUrl={card.imageUrl} name={card.name} grade={card.grade} className="w-full" />
-                    <div className="mt-3 space-y-1">
-                      <p className="text-sm font-semibold">{card.name}</p>
+                    <div className="mt-3 space-y-1.5">
+                      <p className="text-sm font-semibold group-hover:text-[#CC0000] transition-colors">{card.name}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full inline-block ${gradeBadgeClass(card.grade)}`}>
                         {card.grade}
                       </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-[#CC0000]">{card.price.toLocaleString()}원</span>
+                        <span className="text-[11px] text-muted-foreground">즉시 {card.buyoutPrice.toLocaleString()}원</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -507,10 +515,10 @@ export function Home() {
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {auctions.map((auction) => (
-                  <Link
+                  <div
                     key={auction.auctionId}
-                    to={`/auctions/${auction.auctionId}`}
-                    className="flex flex-col group"
+                    onClick={() => navigate(`/auctions/${auction.auctionId}`)}
+                    className="flex flex-col group cursor-pointer"
                   >
                     <div className="relative">
                       <CardItem
@@ -519,11 +527,9 @@ export function Home() {
                         grade={auction.grade as CardGrade}
                         className="w-full"
                       />
-                      {/* 경매중 badge */}
                       <span className="absolute top-2 left-2 bg-[#CC0000] text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10 shadow">
                         경매중
                       </span>
-                      {/* Like button (auction API: toggleLike) */}
                       <button
                         onClick={(e) => handleToggleLike(e, auction.auctionId)}
                         title={isAuthenticated ? "관심 경매 추가" : "로그인 후 이용"}
@@ -562,7 +568,7 @@ export function Home() {
                         <CountdownTimer endedAt={auction.endedAt} />
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
 
@@ -584,7 +590,7 @@ export function Home() {
         {/* ── Recent cards (card API: getCards) ─────────────────────────── */}
         {!isCardsLoading && recentCards.length > 0 && (
           <section>
-            <SectionHeader emoji="🎴" title="최근 등록 카드" />
+            <SectionHeader emoji="💰" title="최근 등록 카드" />
             <div className="flex gap-4 overflow-x-auto pb-3">
               {recentCards.map((card) => (
                 <div key={card.id} className="flex-shrink-0 w-40 flex flex-col">

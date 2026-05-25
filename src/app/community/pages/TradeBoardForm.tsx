@@ -92,7 +92,7 @@ export function TradeBoardForm() {
             <ArrowLeft className="w-4 h-4" /> 돌아가기
           </button>
           <h1 className="text-2xl font-extrabold text-[#FFCB05]">
-            {isEdit ? "✏️ 판매글 수정" : "🎴 판매글 등록"}
+            {isEdit ? "판매글 수정" : "판매글 등록"}
           </h1>
           <p className="text-sm text-white/50 mt-1">거래게시판</p>
         </div>

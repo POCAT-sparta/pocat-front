@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { Menu, User, X } from "lucide-react";
+import { Gavel, Menu, User, X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { toast } from "sonner";
@@ -25,8 +25,8 @@ export function Header() {
   const navItems = [
     { path: "/",        label: "🏠 경매장"    },
     { path: "/free",    label: "💬 자유게시판" },
-    { path: "/trade",   label: "🎴 거래게시판" },
-    { path: "/profile", label: "⚡ 내 경매"   },
+    { path: "/trade",   label: "💰 거래게시판" },
+    { path: "/my-auctions", label: "⚡ 내 경매" },
   ];
 
   async function handleLogout() {
@@ -77,6 +77,12 @@ export function Header() {
           <div className="hidden md:flex items-center gap-2">
             {isAuthenticated ? (
               <>
+                <Link
+                  to="/auctions/new"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold bg-[#CC0000] hover:bg-[#aa0000] text-white transition-colors"
+                >
+                  <Gavel className="w-3.5 h-3.5" /> 경매 등록
+                </Link>
                 <Link
                   to="/profile"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-sm text-white"
@@ -144,6 +150,13 @@ export function Header() {
             <div className="border-t border-white/10 pt-3 mt-3 space-y-1">
               {isAuthenticated ? (
                 <>
+                  <Link
+                    to="/auctions/new"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#CC0000] hover:bg-[#aa0000] text-white transition-colors"
+                  >
+                    <Gavel className="w-4 h-4" /> 경매 등록
+                  </Link>
                   <Link
                     to="/profile"
                     onClick={() => setIsMenuOpen(false)}

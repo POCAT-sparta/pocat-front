@@ -211,7 +211,7 @@ export function FreeBoardDetail() {
 
       <div className="container mx-auto px-4 py-8 max-w-2xl space-y-8">
         {/* Content */}
-        <div className="bg-card border rounded-xl p-6 min-h-[120px]">
+        <div className="bg-card border rounded-2xl p-6 min-h-[120px]">
           <p className="text-sm whitespace-pre-wrap leading-relaxed">{post.content}</p>
         </div>
 

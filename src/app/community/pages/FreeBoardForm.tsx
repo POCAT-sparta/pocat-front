@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, PenLine } from "lucide-react";
 import { createPost, getPost, updatePost } from "@/api/community/freeCommunityApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { toast } from "sonner";
@@ -11,9 +11,9 @@ export function FreeBoardForm() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const [title, setTitle]     = useState("");
+  const [title,   setTitle]   = useState("");
   const [content, setContent] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading,  setIsLoading]  = useState(false);
   const [isFetching, setIsFetching] = useState(isEdit);
 
   useEffect(() => {
@@ -31,10 +31,7 @@ export function FreeBoardForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
-      toast.error("제목과 내용을 입력해주세요.");
-      return;
-    }
+    if (!title.trim() || !content.trim()) { toast.error("제목과 내용을 입력해주세요."); return; }
     setIsLoading(true);
     try {
       if (isEdit) {
@@ -64,13 +61,16 @@ export function FreeBoardForm() {
   return (
     <div className="min-h-screen bg-background">
       <section className="bg-gradient-to-r from-[#1a1a2e] to-[#16213e] text-white py-10 border-b border-white/10">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-2xl">
           <button onClick={() => navigate(isEdit ? `/free/${id}` : "/free")} className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm mb-3 transition-colors">
             <ArrowLeft className="w-4 h-4" /> 돌아가기
           </button>
-          <h1 className="text-2xl font-extrabold text-[#FFCB05]">
-            {isEdit ? "✏️ 게시글 수정" : "✏️ 새 게시글"}
-          </h1>
+          <div className="flex items-center gap-2">
+            <PenLine className="w-5 h-5 text-[#FFCB05]" />
+            <h1 className="text-2xl font-extrabold text-[#FFCB05]">
+              {isEdit ? "게시글 수정" : "새 게시글"}
+            </h1>
+          </div>
           <p className="text-sm text-white/50 mt-1">자유게시판</p>
         </div>
       </section>
