@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext.tsx";
-import type { SignupRequest } from "../types/auth.types.ts";
+import type { SignupRequest } from "@/types/auth.types";
 
 export function Signup() {
   const { signup } = useAuth();

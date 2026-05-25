@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Gavel, Clock, TrendingUp, Search } from "lucide-react";
 import { AuctionCard } from "../components/AuctionCard.tsx";
 import { getAuctions } from "@/api/auction/auctionApi.ts";
-import type { AuctionListItem } from "../types/auction.types.ts";
+import type { AuctionListItem } from "@/types/auction.types";
 
 const SORT_OPTIONS = [
   { label: "마감 임박순", value: "endedAt,asc" },

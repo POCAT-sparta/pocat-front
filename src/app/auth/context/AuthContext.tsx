@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { clearTokens, setTokens } from "@/shared/lib/apiClient.ts";
 import { login as apiLogin, logout as apiLogout, signup as apiSignup } from "../../../api/auth/authApi.ts";
 import type { User } from "../../user/types/user.types.ts";
-import type { LoginRequest, SignupRequest } from "../types/auth.types.ts";
+import type { LoginRequest, SignupRequest } from "@/types/auth.types";
 import {getMe} from "@/api/user/userApi.ts";
 
 interface AuthContextValue {

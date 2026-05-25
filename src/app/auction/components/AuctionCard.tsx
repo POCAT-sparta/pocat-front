@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { AuctionListItem } from "../types/auction.types.ts";
+import type { AuctionListItem } from "@/types/auction.types";
 
 interface AuctionCardProps {
   auction: AuctionListItem;

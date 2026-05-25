@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import { Eye, User, ChevronLeft, Calendar } from "lucide-react";
 import { useAuth } from "../../auth/context/AuthContext.tsx";
-import type { TradePostDetail as TradePostDetailType } from "../types/post.types.ts";
+import type { TradePostDetail as TradePostDetailType } from "@/types/community.types";
 import {getTradePost} from "@/api/community/tradeCommunityApi.ts";
 
 export function ProductDetail() {

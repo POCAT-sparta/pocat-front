@@ -4,7 +4,7 @@ import { Gavel, Clock, Heart, Shield, Package, User, ChevronLeft } from "lucide-
 import { toast } from "sonner";
 import { getAuctionDetail } from "@/api/auction/auctionApi.ts";
 import { useAuth } from "../../auth/context/AuthContext.tsx";
-import type { AuctionDetail as AuctionDetailType, BidItem } from "../types/auction.types.ts";
+import type { AuctionDetail as AuctionDetailType, BidItem } from "@/types/auction.types";
 import {buyout, getAuctionBids, placeBid, toggleLike} from "@/api/auction/bidApi.ts";
 
 function useCountdown(endedAt: string) {

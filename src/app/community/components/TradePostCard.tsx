@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { Eye } from "lucide-react";
-import type { TradePostListItem } from "../types/post.types.ts";
+import type { TradePostListItem } from "@/types/community.types";
 
 interface TradePostCardProps {
   post: TradePostListItem;

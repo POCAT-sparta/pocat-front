@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { SlidersHorizontal, Search } from "lucide-react";
 import { TradePostCard } from "../components/TradePostCard.tsx";
-import type { TradePostListItem } from "../types/post.types.ts";
+import type { TradePostListItem } from "@/types/community.types";
 import {getTradePosts} from "@/api/community/tradeCommunityApi.ts";
 
 const SORT_OPTIONS = [

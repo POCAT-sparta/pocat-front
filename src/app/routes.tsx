@@ -10,6 +10,7 @@ import { FlashSale } from "@/app/auction/pages/FlashSale";
 import { Profile } from "@/app/user/pages/Profile";
 import { Login } from "@/app/auth/pages/Login";
 import { Signup } from "@/app/auth/pages/Signup";
+import { CardTest } from "@/app/card/pages/CardTest";
 
 export const router = createBrowserRouter([
   {
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
       { path: "flash-sale", Component: FlashSale },
       { path: "product/:id", Component: ProductDetail },
       { path: "profile", Component: Profile },
+      { path: "card-test", Component: CardTest },
       { path: "*", Component: NotFound },
     ],
   },
