@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/context/AuthContext.tsx";
+import { useIssueBillingKey } from "@/app/payment/hooks/useIssueBillingKey";
 
 const TRAINER_CLASSES = ["견습 트레이너", "정식 트레이너", "상급 트레이너", "엘리트 트레이너", "마스터 트레이너"];
 
@@ -13,9 +14,25 @@ function getTrainerClass(unpaidStrike: number, isBidBlocked: boolean) {
 }
 
 export function Profile() {
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const { user, isLoading, isAuthenticated, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("info");
+  const { issueBillingKey, isIssuing } = useIssueBillingKey();
+
+  async function handleRegisterCard() {
+    if (!user) return;
+    try {
+      await issueBillingKey({
+        fullName: user.nickname,
+        email: user.email,
+        phoneNumber: user.phone,
+      });
+      toast.success("카드가 등록되었습니다.");
+      await refreshUser();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "카드 등록에 실패했습니다.");
+    }
+  }
 
   const tabs = [
     { id: "info",     label: "내 정보",   icon: <User className="w-4 h-4" />         },
@@ -184,6 +201,17 @@ export function Profile() {
                     label="빌링키"
                     value={user.hasBillingKey ? "✅ 등록됨" : "미등록"}
                   />
+                </div>
+
+                <div className="border-t pt-5">
+                  <button
+                    onClick={handleRegisterCard}
+                    disabled={isIssuing}
+                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    {isIssuing ? "등록 중..." : user.hasBillingKey ? "카드 변경" : "카드 등록"}
+                  </button>
                 </div>
 
                 <div className="border-t pt-5 space-y-3">
