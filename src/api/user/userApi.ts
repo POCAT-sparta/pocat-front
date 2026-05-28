@@ -11,3 +11,7 @@ export async function updateMe(data: UpdateUserRequest): Promise<UpdateUserRespo
     const res = await apiClient.patch<ApiResponse<UpdateUserResponse>>("/api/v1/users/me", data);
     return res.data;
 }
+
+export async function registerBillingKey(billingKey: string): Promise<void> {
+    await apiClient.post<ApiResponse<void>>("/api/v1/users/me/billing-key", { billingKey });
+}
