@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { Gavel, Menu, User, X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/app/auth/context/AuthContext";
+import { NotificationBell } from "@/app/notification/components/NotificationBell";
 import { toast } from "sonner";
 
 const POKEBALL_SVG = (
@@ -27,7 +28,12 @@ export function Header() {
     { path: "/free",    label: "💬 자유게시판" },
     { path: "/trade",   label: "💰 거래게시판" },
     { path: "/my-auctions", label: "⚡ 내 경매" },
-    ...(isAuthenticated ? [{ path: "/chats", label: "📨 내 채팅" }] : []),
+    ...(isAuthenticated
+      ? [
+          { path: "/orders", label: "🧾 내 주문" },
+          { path: "/chats", label: "📨 내 채팅" },
+        ]
+      : []),
   ];
 
   async function handleLogout() {
@@ -78,6 +84,7 @@ export function Header() {
           <div className="hidden md:flex items-center gap-2">
             {isAuthenticated ? (
               <>
+                <NotificationBell />
                 <Link
                   to="/auctions/new"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold bg-[#CC0000] hover:bg-[#aa0000] text-white transition-colors"
@@ -119,12 +126,15 @@ export function Header() {
           </div>
 
           {/* ── Mobile hamburger ────────────────────────────── */}
-          <button
-            className="md:hidden p-2 text-white hover:bg-white/10 rounded-xl transition-colors"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="md:hidden flex items-center gap-1">
+            {isAuthenticated && <NotificationBell />}
+            <button
+              className="p-2 text-white hover:bg-white/10 rounded-xl transition-colors"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         {/* ── Mobile menu ─────────────────────────────────────── */}

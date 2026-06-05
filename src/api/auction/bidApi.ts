@@ -22,10 +22,14 @@ export async function placeBid(auctionId: number, data: PlaceBidRequest): Promis
     return res.data;
 }
 
-export async function buyout(auctionId: number, bidPrice: number): Promise<BuyoutResponse> {
+/**
+ * 즉시구매: 백엔드가 빌링키 자동결제까지 완료한 뒤 결과를 반환한다.
+ * 별도의 PG 결제창을 띄울 필요가 없다(orderStatus/paymentStatus 로 성공 여부 확인).
+ */
+export async function buyout(auctionId: number): Promise<BuyoutResponse> {
     const res = await apiClient.post<ApiResponse<BuyoutResponse>>(
         `/api/v1/auctions/${auctionId}/buyout`,
-        { bidPrice }
+        {}
     );
     return res.data;
 }

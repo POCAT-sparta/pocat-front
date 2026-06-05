@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { clearTokens, setTokens } from "@/shared/lib/apiClient.ts";
+import { clearTokens, getAccessToken, setTokens } from "@/shared/lib/apiClient.ts";
 import { login as apiLogin, logout as apiLogout, signup as apiSignup } from "../../../api/auth/authApi.ts";
 import type { User } from "../../user/types/user.types.ts";
 import type { LoginRequest, SignupRequest } from "@/types/auth.types";
@@ -22,7 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   async function fetchUser() {
-    const token = localStorage.getItem("accessToken");
+    // 토큰은 쿠키에 저장된다(apiClient). 새로고침 후에도 쿠키로 로그인 유지.
+    const token = getAccessToken();
     if (!token) {
       setIsLoading(false);
       return;

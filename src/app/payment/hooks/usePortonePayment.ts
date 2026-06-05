@@ -1,7 +1,6 @@
 import { useState } from "react";
 import * as PortOne from "@portone/browser-sdk/v2";
 import { confirmPayment, createPayment } from "@/api/payment/paymentApi";
-import type { BuyoutResponse } from "@/types/auction.types";
 
 const STORE_ID = import.meta.env.VITE_PORTONE_STORE_ID as string;
 const CHANNEL_KEY = import.meta.env.VITE_PORTONE_CHANNEL_KEY as string;
@@ -44,7 +43,8 @@ export function usePortonePayment() {
   const [isPaying, setIsPaying] = useState(false);
 
   /**
-   * 낙찰 결제: 백엔드에서 paymentUid를 생성하고 바로 결제창 오픈
+   * 직접 결제(PG 결제창): 낙찰 후 자동결제 실패분 또는 결제 대기 주문을 직접 결제할 때 사용.
+   * 백엔드에서 auctionId 로 paymentUid 를 생성하고 PortOne 결제창을 연 뒤 확정한다.
    */
   async function payForAuction(auctionId: number, orderName: string, buyer?: Buyer) {
     setIsPaying(true);
@@ -56,22 +56,5 @@ export function usePortonePayment() {
     }
   }
 
-  /**
-   * 즉시 구매 결제: buyout API 응답의 paymentUid를 바로 사용
-   */
-  async function payForBuyout(buyoutRes: BuyoutResponse, orderName: string, buyer?: Buyer) {
-    setIsPaying(true);
-    try {
-      await executePortonePayment({
-        paymentUid: buyoutRes.paymentUid,
-        amount: buyoutRes.paidAmount,
-        orderName,
-        buyer,
-      });
-    } finally {
-      setIsPaying(false);
-    }
-  }
-
-  return { payForAuction, payForBuyout, isPaying };
+  return { payForAuction, isPaying };
 }

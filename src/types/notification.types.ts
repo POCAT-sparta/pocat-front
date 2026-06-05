@@ -12,3 +12,13 @@ export interface NotificationListResponse {
   nextCursor: number | null;
   hasNext: boolean;
 }
+
+/** /sub/notifications/{userId} 로 실시간 수신되는 이벤트 (relatedData는 객체) */
+export interface NotificationEvent {
+  notificationId: number;
+  userId: number;
+  type: string;
+  message: string;
+  relatedData: unknown;
+  createdAt: string;
+}
