@@ -21,16 +21,22 @@ export function Profile() {
 
   async function handleRegisterCard() {
     if (!user) return;
+    const isUpdate = user.hasBillingKey;
     try {
-      await issueBillingKey({
-        fullName: user.nickname,
-        email: user.email,
-        phoneNumber: user.phone,
-      });
-      toast.success("카드가 등록되었습니다.");
+      await issueBillingKey(
+        {
+          fullName: user.nickname,
+          email: user.email,
+          phoneNumber: user.phone,
+        },
+        { isUpdate }
+      );
+      toast.success(isUpdate ? "카드가 변경되었습니다." : "카드가 등록되었습니다.");
       await refreshUser();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "카드 등록에 실패했습니다.");
+      toast.error(
+        e instanceof Error ? e.message : isUpdate ? "카드 변경에 실패했습니다." : "카드 등록에 실패했습니다."
+      );
     }
   }
 
