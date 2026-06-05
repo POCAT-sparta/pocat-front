@@ -12,6 +12,12 @@ export async function updateMe(data: UpdateUserRequest): Promise<UpdateUserRespo
     return res.data;
 }
 
+/** 빌링키 최초 등록 (이미 등록돼 있으면 서버가 BILLING_KEY_ALREADY_EXISTS 반환) */
 export async function registerBillingKey(billingKey: string): Promise<void> {
     await apiClient.post<ApiResponse<void>>("/api/v1/users/me/billing-key", { billingKey });
+}
+
+/** 빌링키 교체 (기존 등록된 카드 변경) */
+export async function updateBillingKey(billingKey: string): Promise<void> {
+    await apiClient.put<ApiResponse<void>>("/api/v1/users/me/billing-key", { billingKey });
 }
