@@ -6,6 +6,7 @@ import type {
   CardAveragePriceResponse,
   CardSearchParams,
   MyCardRequestsParams,
+  ActiveAuctionSummary,
 } from "@/types/card.types";
 
 export async function getCards(params: CardSearchParams = {}): Promise<PageResponse<CardResponse>> {
@@ -33,6 +34,19 @@ export async function getCard(cardId: number): Promise<CardResponse> {
     { skipAuth: true }
   );
   return res.data;
+}
+
+/** 카드에 연결된 진행 중 경매 목록 (최신순) */
+export async function getCardAuctions(
+  cardId: number,
+  page = 0,
+  size = 10
+): Promise<ActiveAuctionSummary[]> {
+  const res = await apiClient.get<ApiResponse<{ content: ActiveAuctionSummary[] }>>(
+    `/api/v1/cards/${cardId}/auctions?page=${page}&size=${size}`,
+    { skipAuth: true }
+  );
+  return res.data.content;
 }
 
 export async function createCard(data: CreateCardRequest): Promise<CardResponse> {

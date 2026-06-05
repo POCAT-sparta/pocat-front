@@ -17,6 +17,8 @@ import { TradeBoardForm } from "@/app/community/pages/TradeBoardForm";
 import { ChatList } from "@/app/chat/pages/ChatList";
 import { MyOrders } from "@/app/order/pages/MyOrders";
 import { OrderDetail } from "@/app/order/pages/OrderDetail";
+import { CardCatalog } from "@/app/card/pages/CardCatalog";
+import { CardDetail } from "@/app/card/pages/CardDetail";
 
 export const router = createBrowserRouter([
   {
@@ -29,6 +31,10 @@ export const router = createBrowserRouter([
       { path: "auctions/new",        Component: AuctionForm   },
       { path: "auctions/:auctionId", Component: AuctionDetail },
       { path: "my-auctions",         Component: MyAuctions    },
+
+      // Card catalog
+      { path: "cards",           Component: CardCatalog },
+      { path: "cards/:cardId",   Component: CardDetail  },
 
       // Free board
       { path: "free",            Component: FreeBoard       },

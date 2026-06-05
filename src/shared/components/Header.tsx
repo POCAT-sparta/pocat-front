@@ -25,6 +25,7 @@ export function Header() {
 
   const navItems = [
     { path: "/",        label: "🏠 경매장"    },
+    { path: "/cards",   label: "🃏 카드도감"   },
     { path: "/free",    label: "💬 자유게시판" },
     { path: "/trade",   label: "💰 거래게시판" },
     { path: "/my-auctions", label: "⚡ 내 경매" },
