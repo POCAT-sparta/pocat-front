@@ -6,6 +6,17 @@ export type CardSource = "TCGDEX" | "MANUAL";
 
 export type CardStatus = "ACTIVE" | "PENDING" | "REJECTED";
 
+/** 카드에 연결된 진행 중 경매 요약 (GET /cards/{id} 단건, /cards/{id}/auctions 목록) */
+export interface ActiveAuctionSummary {
+  auctionId: number;
+  title: string;
+  startingPrice: number;
+  buyoutPrice: number | null;
+  highestPrice: number | null;
+  startedAt: string;
+  endedAt: string;
+}
+
 export interface CardResponse {
   id: number;
   userId: number;
@@ -23,6 +34,10 @@ export interface CardResponse {
   status: CardStatus;
   createdAt: string;
   updatedAt: string;
+  /** 단건 조회 시 채워짐 (목록 조회 시 null) */
+  activeAuction: ActiveAuctionSummary | null;
+  /** 목록 조회 시 채워짐 (진행 중 경매 수) */
+  activeAuctionCount: number;
 }
 
 export interface CreateCardRequest {
