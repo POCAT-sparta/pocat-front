@@ -1,5 +1,6 @@
 import { Link, Outlet } from "react-router";
 import { Header } from "../../shared/components/Header";
+import { NotificationProvider } from "@/app/notification/context/NotificationContext";
 
 function Footer() {
   return (
@@ -72,12 +73,14 @@ function Footer() {
 
 export function Root() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1">
-        <Outlet />
-      </main>
-      <Footer />
-    </div>
+    <NotificationProvider>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <Footer />
+      </div>
+    </NotificationProvider>
   );
 }

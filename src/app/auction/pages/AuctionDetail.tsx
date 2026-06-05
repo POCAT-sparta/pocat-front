@@ -129,6 +129,7 @@ function rankBadge(idx: number) {
 // ── Main component ──────────────────────────────────────────────────────────
 export function AuctionDetail() {
   const { auctionId } = useParams<{ auctionId: string }>();
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
 
   const [auction, setAuction]     = useState<AuctionDetailType | null>(null);
@@ -141,7 +142,16 @@ export function AuctionDetail() {
   const [isBuyingOut, setIsBuyingOut] = useState(false);
   const [isLiking,    setIsLiking]    = useState(false);
 
-  const { payForAuction, payForBuyout, isPaying } = usePortonePayment();
+  const { payForAuction, isPaying } = usePortonePayment();
+
+  function requireBillingKey(): boolean {
+    if (!user?.hasBillingKey) {
+      toast.error("입찰/구매를 위해 먼저 마이페이지에서 빌링키(카드)를 등록해주세요.");
+      navigate("/profile");
+      return false;
+    }
+    return true;
+  }
 
   const timeLeft = useCountdown(auction?.endedAt ?? new Date().toISOString());
 
@@ -170,6 +180,8 @@ export function AuctionDetail() {
 
   async function handleBid() {
     if (isMock) { toast.info("데모 모드입니다. 실제 서버에서는 입찰이 가능합니다."); return; }
+    if (!isAuthenticated) { toast.error("로그인이 필요합니다."); navigate("/login"); return; }
+    if (!requireBillingKey()) return;
     const price = Number(bidInput);
     if (!price || price <= 0) { toast.error("올바른 입찰 금액을 입력해주세요."); return; }
     setIsBidding(true);
@@ -187,17 +199,21 @@ export function AuctionDetail() {
   async function handleBuyout() {
     if (isMock) { toast.info("데모 모드입니다."); return; }
     if (!auction) return;
+    if (!isAuthenticated) { toast.error("로그인이 필요합니다."); navigate("/login"); return; }
+    if (!requireBillingKey()) return;
     setIsBuyingOut(true);
     try {
-      const buyoutRes = await buyout(Number(auctionId), auction.buyoutPrice);
-      await payForBuyout(buyoutRes, auction.title, {
-        fullName: user?.nickname,
-        email: user?.email,
-      });
-      toast.success("결제 완료! 카드가 곧 배송됩니다.");
+      // 백엔드가 빌링키 자동결제까지 처리하므로 응답으로 성공 여부만 확인한다.
+      const res = await buyout(Number(auctionId));
+      const paid = res.orderStatus === "PAYMENT_COMPLETED" || res.paymentStatus === "COMPLETED";
+      if (paid) {
+        toast.success("결제 완료! 카드가 곧 배송됩니다.");
+      } else {
+        toast.error("결제가 완료되지 않았습니다. 내 주문에서 다시 시도해주세요.");
+      }
       await fetchData();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "결제에 실패했습니다.");
+      toast.error(e instanceof Error ? e.message : "즉시구매에 실패했습니다.");
     } finally {
       setIsBuyingOut(false);
     }
