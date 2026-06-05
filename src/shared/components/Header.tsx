@@ -27,6 +27,7 @@ export function Header() {
     { path: "/free",    label: "💬 자유게시판" },
     { path: "/trade",   label: "💰 거래게시판" },
     { path: "/my-auctions", label: "⚡ 내 경매" },
+    ...(isAuthenticated ? [{ path: "/chats", label: "📨 내 채팅" }] : []),
   ];
 
   async function handleLogout() {

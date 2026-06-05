@@ -14,6 +14,7 @@ import { FreeBoardForm } from "@/app/community/pages/FreeBoardForm";
 import { TradeBoard } from "@/app/community/pages/TradeBoard";
 import { TradeBoardDetail } from "@/app/community/pages/TradeBoardDetail";
 import { TradeBoardForm } from "@/app/community/pages/TradeBoardForm";
+import { ChatList } from "@/app/chat/pages/ChatList";
 
 export const router = createBrowserRouter([
   {
@@ -38,6 +39,9 @@ export const router = createBrowserRouter([
       { path: "trade/new",       Component: TradeBoardForm   },
       { path: "trade/:id",       Component: TradeBoardDetail },
       { path: "trade/:id/edit",  Component: TradeBoardForm   },
+
+      // Chat
+      { path: "chats", Component: ChatList },
 
       // User
       { path: "profile", Component: Profile },

@@ -17,6 +17,10 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
+  // sockjs-client expects a Node-style `global`; map it to globalThis in the browser
+  define: {
+    global: 'globalThis',
+  },
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
@@ -39,6 +43,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+      },
+      // SockJS/STOMP 채팅 엔드포인트 (WebSocket 업그레이드 포함)
+      '/ws': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true,
       },
     },
   },
