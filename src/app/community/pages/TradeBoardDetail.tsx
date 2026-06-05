@@ -1,130 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeft, Eye, MessageCircle, Pencil, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, Eye, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { deleteTradePost, getTradePost } from "@/api/community/tradeCommunityApi";
+import { createChat, getMyChats } from "@/api/chat/chatApi";
+import { ChatRoomModal } from "@/app/chat/components/ChatRoomModal";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import type { TradePostDetail } from "@/types/community.types";
 import { toast } from "sonner";
-
-interface ChatMessage {
-  id: number;
-  sender: "me" | "seller";
-  text: string;
-  time: string;
-}
-
-function now() {
-  return new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
-}
-
-function ChatModal({ sellerNickname, onClose }: { sellerNickname: string; onClose: () => void }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 0, sender: "seller", text: `안녕하세요! 판매글에 관심 가져주셔서 감사합니다 ⚡`, time: now() },
-  ]);
-  const [input, setInput] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
-
-  function sendMessage(text: string) {
-    if (!text.trim()) return;
-    const newMsg: ChatMessage = { id: Date.now(), sender: "me", text: text.trim(), time: now() };
-    setMessages(prev => [...prev, newMsg]);
-    setInput("");
-
-    // Simulated auto-reply (replace with WebSocket in production)
-    setTimeout(() => {
-      const replies = [
-        "네, 확인했습니다! 😊",
-        "언제 거래 가능하신가요?",
-        "택배 거래도 가능해요 📦",
-        "카드 상태는 아주 좋습니다 ✨",
-        "직거래라면 강남역 어떠세요?",
-      ];
-      const reply: ChatMessage = {
-        id: Date.now() + 1,
-        sender: "seller",
-        text: replies[Math.floor(Math.random() * replies.length)],
-        time: now(),
-      };
-      setMessages(prev => [...prev, reply]);
-    }, 800 + Math.random() * 600);
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Chat window */}
-      <div className="relative w-full sm:w-[400px] h-[560px] sm:h-[520px] bg-background rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl border border-white/10">
-        {/* Chat header */}
-        <div className="bg-[#1a1a2e] px-4 py-3.5 flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-full bg-[#FFCB05] flex items-center justify-center text-[#1a1a2e] font-extrabold text-sm shrink-0">
-            {sellerNickname[0]?.toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">{sellerNickname} 트레이너</p>
-            <p className="text-[10px] text-[#FFCB05] flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
-              온라인
-            </p>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0f0f1a]">
-          {messages.map(msg => (
-            <div key={msg.id} className={`flex ${msg.sender === "me" ? "justify-end" : "justify-start"} gap-2`}>
-              {msg.sender === "seller" && (
-                <div className="w-7 h-7 rounded-full bg-[#FFCB05] flex items-center justify-center text-[#1a1a2e] font-bold text-[10px] shrink-0 mt-0.5">
-                  {sellerNickname[0]?.toUpperCase()}
-                </div>
-              )}
-              <div className={`max-w-[75%] space-y-0.5 ${msg.sender === "me" ? "items-end" : "items-start"} flex flex-col`}>
-                <div className={`px-3.5 py-2.5 rounded-2xl text-sm ${
-                  msg.sender === "me"
-                    ? "bg-[#CC0000] text-white rounded-br-sm"
-                    : "bg-[#1a1a2e] text-white rounded-bl-sm border border-white/10"
-                }`}>
-                  {msg.text}
-                </div>
-                <span className="text-[10px] text-white/30 px-1">{msg.time}</span>
-              </div>
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Notice banner */}
-        <div className="px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 text-[10px] text-amber-400 text-center shrink-0">
-          ⚡ 실시간 채팅은 준비 중입니다 — 시뮬레이션 모드로 동작 중
-        </div>
-
-        {/* Input */}
-        <div className="px-4 py-3 border-t bg-[#1a1a2e] flex items-center gap-2 shrink-0">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }}}
-            placeholder="메시지를 입력하세요..."
-            className="flex-1 bg-white/10 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#FFCB05]/50 transition-colors"
-          />
-          <button
-            onClick={() => sendMessage(input)}
-            disabled={!input.trim()}
-            className="w-10 h-10 bg-[#CC0000] hover:bg-[#aa0000] text-white rounded-xl flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -137,7 +19,8 @@ export function TradeBoardDetail() {
 
   const [post, setPost]         = useState<TradePostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatId, setChatId]     = useState<number | null>(null);
+  const [chatOpening, setChatOpening] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -157,9 +40,28 @@ export function TradeBoardDetail() {
     } catch { toast.error("삭제에 실패했습니다."); }
   }
 
-  function handleChatOpen() {
+  async function handleChatOpen() {
     if (!isAuthenticated) { navigate("/login"); return; }
-    setChatOpen(true);
+    if (!post) return;
+    setChatOpening(true);
+    try {
+      const chat = await createChat(post.id);
+      setChatId(chat.chatId);
+    } catch {
+      // 이미 채팅방이 존재하는 경우(CHAT_ALREADY_EXISTS) → 기존 방을 찾아 연다
+      try {
+        const myChats = await getMyChats();
+        const existing = myChats.find(
+          (c) => c.postTitle === post.title && c.opponentNickname === post.authorNickname
+        );
+        if (existing) setChatId(existing.chatId);
+        else toast.error("채팅방을 여는 데 실패했습니다.");
+      } catch {
+        toast.error("채팅방을 여는 데 실패했습니다.");
+      }
+    } finally {
+      setChatOpening(false);
+    }
   }
 
   if (isLoading) {
@@ -240,10 +142,11 @@ export function TradeBoardDetail() {
               {!isOwner ? (
                 <button
                   onClick={handleChatOpen}
-                  className="flex items-center justify-center gap-2 w-full bg-[#CC0000] hover:bg-[#aa0000] text-white py-3.5 rounded-2xl font-bold transition-colors"
+                  disabled={chatOpening}
+                  className="flex items-center justify-center gap-2 w-full bg-[#CC0000] hover:bg-[#aa0000] text-white py-3.5 rounded-2xl font-bold transition-colors disabled:opacity-50"
                 >
                   <MessageCircle className="w-5 h-5" />
-                  채팅으로 구매 문의하기
+                  {chatOpening ? "채팅방 여는 중…" : "채팅으로 구매 문의하기"}
                 </button>
               ) : (
                 <div className="flex gap-2">
@@ -278,8 +181,12 @@ export function TradeBoardDetail() {
         </div>
       </div>
 
-      {chatOpen && (
-        <ChatModal sellerNickname={post.authorNickname} onClose={() => setChatOpen(false)} />
+      {chatId !== null && (
+        <ChatRoomModal
+          chatId={chatId}
+          opponentNickname={post.authorNickname}
+          onClose={() => setChatId(null)}
+        />
       )}
     </>
   );
