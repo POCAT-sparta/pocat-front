@@ -25,6 +25,10 @@ import { AdminUsers } from "@/app/admin/pages/AdminUsers";
 import { AdminCards } from "@/app/admin/pages/AdminCards";
 import { AdminCatalog } from "@/app/admin/pages/AdminCatalog";
 import { AdminAuctions } from "@/app/admin/pages/AdminAuctions";
+import { AdminOrders } from "@/app/admin/pages/AdminOrders";
+import { AdminSettlements } from "@/app/admin/pages/AdminSettlements";
+import { AdminRefunds } from "@/app/admin/pages/AdminRefunds";
+import { AdminAi } from "@/app/admin/pages/AdminAi";
 
 export const router = createBrowserRouter([
   {
@@ -77,10 +81,14 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         children: [
           { index: true, element: <Navigate to="users" replace /> },
-          { path: "users",    Component: AdminUsers    },
-          { path: "cards",    Component: AdminCards    },
-          { path: "catalog",  Component: AdminCatalog  },
-          { path: "auctions", Component: AdminAuctions },
+          { path: "users",       Component: AdminUsers       },
+          { path: "cards",       Component: AdminCards       },
+          { path: "catalog",     Component: AdminCatalog     },
+          { path: "auctions",    Component: AdminAuctions    },
+          { path: "orders",      Component: AdminOrders      },
+          { path: "settlements", Component: AdminSettlements },
+          { path: "refunds",     Component: AdminRefunds     },
+          { path: "ai",          Component: AdminAi          },
         ],
       },
     ],

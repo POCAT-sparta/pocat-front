@@ -1,11 +1,15 @@
 import { Link, NavLink, Outlet } from "react-router";
-import { Users, FileCheck, Layers, Gavel } from "lucide-react";
+import { Users, FileCheck, Layers, Gavel, Receipt, Wallet, Undo2, Sparkles } from "lucide-react";
 
 const NAV = [
-  { to: "/admin/users",    label: "회원 관리",   icon: Users     },
-  { to: "/admin/cards",    label: "카드 요청",   icon: FileCheck },
-  { to: "/admin/catalog",  label: "카탈로그",    icon: Layers    },
-  { to: "/admin/auctions", label: "경매 관리",   icon: Gavel     },
+  { to: "/admin/users",       label: "회원 관리",   icon: Users     },
+  { to: "/admin/cards",       label: "카드 요청",   icon: FileCheck },
+  { to: "/admin/catalog",     label: "카탈로그",    icon: Layers    },
+  { to: "/admin/auctions",    label: "경매 관리",   icon: Gavel     },
+  { to: "/admin/orders",      label: "주문 관리",   icon: Receipt   },
+  { to: "/admin/settlements", label: "정산 관리",   icon: Wallet    },
+  { to: "/admin/refunds",     label: "환불 관리",   icon: Undo2     },
+  { to: "/admin/ai",          label: "AI 운영",     icon: Sparkles  },
 ];
 
 export function AdminLayout() {
