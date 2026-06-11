@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { Root } from "./pages/Root";
 import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
@@ -8,6 +8,7 @@ import { MyAuctions } from "@/app/auction/pages/MyAuctions";
 import { Profile } from "@/app/user/pages/Profile";
 import { Login } from "@/app/auth/pages/Login";
 import { Signup } from "@/app/auth/pages/Signup";
+import { AdminSignup } from "@/app/auth/pages/AdminSignup";
 import { FreeBoard } from "@/app/community/pages/FreeBoard";
 import { FreeBoardDetail } from "@/app/community/pages/FreeBoardDetail";
 import { FreeBoardForm } from "@/app/community/pages/FreeBoardForm";
@@ -19,6 +20,9 @@ import { MyOrders } from "@/app/order/pages/MyOrders";
 import { OrderDetail } from "@/app/order/pages/OrderDetail";
 import { CardCatalog } from "@/app/card/pages/CardCatalog";
 import { CardDetail } from "@/app/card/pages/CardDetail";
+import { AdminRoute } from "@/app/admin/components/AdminRoute";
+import { AdminLayout } from "@/app/admin/components/AdminLayout";
+import { AdminUsers } from "@/app/admin/pages/AdminUsers";
 
 export const router = createBrowserRouter([
   {
@@ -62,4 +66,21 @@ export const router = createBrowserRouter([
   },
   { path: "/login",  Component: Login  },
   { path: "/signup", Component: Signup },
+  // 관리자 가입(가드 바깥) — 일반 계정 생성 후 DB에서 ADMIN 승격 필요
+  { path: "/admin-signup", Component: AdminSignup },
+
+  // Admin (ADMIN 권한 필수 — AdminRoute 가드)
+  {
+    path: "/admin",
+    Component: AdminRoute,
+    children: [
+      {
+        Component: AdminLayout,
+        children: [
+          { index: true, element: <Navigate to="users" replace /> },
+          { path: "users", Component: AdminUsers },
+        ],
+      },
+    ],
+  },
 ]);

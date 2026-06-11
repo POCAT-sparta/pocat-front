@@ -35,6 +35,9 @@ export function Header() {
           { path: "/chats", label: "📨 내 채팅" },
         ]
       : []),
+    ...(user?.role === "ADMIN"
+      ? [{ path: "/admin", label: "🛠 관리자" }]
+      : []),
   ];
 
   async function handleLogout() {
