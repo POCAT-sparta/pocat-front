@@ -8,7 +8,6 @@ import { MyAuctions } from "@/app/auction/pages/MyAuctions";
 import { Profile } from "@/app/user/pages/Profile";
 import { Login } from "@/app/auth/pages/Login";
 import { Signup } from "@/app/auth/pages/Signup";
-import { AdminSignup } from "@/app/auth/pages/AdminSignup";
 import { FreeBoard } from "@/app/community/pages/FreeBoard";
 import { FreeBoardDetail } from "@/app/community/pages/FreeBoardDetail";
 import { FreeBoardForm } from "@/app/community/pages/FreeBoardForm";
@@ -66,9 +65,6 @@ export const router = createBrowserRouter([
   },
   { path: "/login",  Component: Login  },
   { path: "/signup", Component: Signup },
-  // 관리자 가입(가드 바깥) — 일반 계정 생성 후 DB에서 ADMIN 승격 필요
-  { path: "/admin-signup", Component: AdminSignup },
-
   // Admin (ADMIN 권한 필수 — AdminRoute 가드)
   {
     path: "/admin",
