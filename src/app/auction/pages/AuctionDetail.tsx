@@ -10,74 +10,6 @@ import { CardItem } from "@/app/card/components/CardItem";
 import type { CardGrade } from "@/types/card.types";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
 
-// ── Mock fallback ───────────────────────────────────────────────────────────
-function makeMockAuction(id: number): AuctionDetailType {
-  const base = {
-    1: {
-      title: "[PSA 10] Radiant Charizard — SWSH12.5",
-      cardName: "Radiant Charizard",
-      grade: "PSA_10",
-      cardImageUrl: "https://images.pokemontcg.io/swsh12pt5/160_hires.png",
-      startingPrice: 800000,
-      buyoutPrice: 3000000,
-      highestPrice: 1200000,
-      description: "Sword & Shield — Crown Zenith 세트의 Radiant Charizard입니다.\nPSA 10 완벽 등급으로 센터링·표면 상태 모두 최상급입니다.\n\n⚡ 인증서 포함 / 택배 안전 포장 발송",
-    },
-    2: {
-      title: "[BGS 10] Radiant Alakazam — SM115",
-      cardName: "Radiant Alakazam",
-      grade: "BGS_10",
-      cardImageUrl: "https://images.pokemontcg.io/sm115/7_hires.png",
-      startingPrice: 300000,
-      buyoutPrice: 1500000,
-      highestPrice: 450000,
-      description: "Sun & Moon 프로모 Radiant Alakazam — BGS 10 블랙 라벨 등급 카드입니다.\n서브 스코어 전부 10점 만점 달성.\n\n⚡ BGS 케이스 상태 완벽 / 직거래·택배 모두 가능",
-    },
-    3: {
-      title: "[PSA 9] Radiant Blastoise — SWSH12.5",
-      cardName: "Radiant Blastoise",
-      grade: "PSA_9",
-      cardImageUrl: "https://images.pokemontcg.io/swsh12pt5/162_hires.png",
-      startingPrice: 200000,
-      buyoutPrice: 900000,
-      highestPrice: 320000,
-      description: "Sword & Shield — Crown Zenith 세트의 Radiant Blastoise PSA 9 등급 카드입니다.\n약간의 에지 웨어가 있어 9등급이지만 보관 상태는 우수합니다.\n\n⚡ 택배 거래 가능 / 인증서 포함",
-    },
-  } as const;
-
-  const data = base[id as keyof typeof base] ?? base[1];
-  return {
-    auctionId: id,
-    id,
-    ...data,
-    cardId: id,
-    status: "ACTIVE",
-    startedAt: new Date(Date.now() - 86400000).toISOString(),
-    endedAt: new Date(Date.now() + 86400000 * 2).toISOString(),
-    sellerId: -1,
-    sellerNickname: "레드 트레이너",
-    highestBidderId: null,
-    highestBidderNickname: "블루 챔피언",
-    likeCount: id === 1 ? 42 : id === 2 ? 17 : 8,
-    isLiked: false,
-  };
-}
-
-const MOCK_BIDS_MAP: Record<number, BidItem[]> = {
-  1: [
-    { bidId: 1, bidderId: 10, bidderNickname: "블루 챔피언",  bidPrice: 1200000, createdAt: new Date(Date.now() - 3600000).toISOString() },
-    { bidId: 2, bidderId: 11, bidderNickname: "그린 마스터",  bidPrice: 1050000, createdAt: new Date(Date.now() - 7200000).toISOString() },
-    { bidId: 3, bidderId: 12, bidderNickname: "옐로우 탐정",  bidPrice: 900000,  createdAt: new Date(Date.now() - 10800000).toISOString() },
-  ],
-  2: [
-    { bidId: 4, bidderId: 13, bidderNickname: "블루 챔피언",  bidPrice: 450000,  createdAt: new Date(Date.now() - 1800000).toISOString() },
-    { bidId: 5, bidderId: 14, bidderNickname: "실버 컬렉터",  bidPrice: 380000,  createdAt: new Date(Date.now() - 5400000).toISOString() },
-  ],
-  3: [
-    { bidId: 6, bidderId: 15, bidderNickname: "그린 마스터",  bidPrice: 320000,  createdAt: new Date(Date.now() - 900000).toISOString() },
-  ],
-};
-
 // ── Utilities ───────────────────────────────────────────────────────────────
 function useCountdown(endedAt: string) {
   const [timeLeft, setTimeLeft] = useState("");
@@ -135,7 +67,6 @@ export function AuctionDetail() {
   const [auction, setAuction]     = useState<AuctionDetailType | null>(null);
   const [bids,    setBids]         = useState<BidItem[]>([]);
   const [isLoading, setIsLoading]  = useState(true);
-  const [isMock,    setIsMock]     = useState(false);
 
   const [bidInput,    setBidInput]    = useState("");
   const [isBidding,   setIsBidding]   = useState(false);
@@ -165,12 +96,8 @@ export function AuctionDetail() {
       ]);
       setAuction(detail);
       setBids(bidPage.content);
-      setIsMock(false);
-    } catch {
-      const id = Number(auctionId);
-      setAuction(makeMockAuction(id));
-      setBids(MOCK_BIDS_MAP[id] ?? MOCK_BIDS_MAP[1]);
-      setIsMock(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "경매 정보를 불러오지 못했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +106,6 @@ export function AuctionDetail() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   async function handleBid() {
-    if (isMock) { toast.info("데모 모드입니다. 실제 서버에서는 입찰이 가능합니다."); return; }
     if (!isAuthenticated) { toast.error("로그인이 필요합니다."); navigate("/login"); return; }
     if (!requireBillingKey()) return;
     const price = Number(bidInput);
@@ -197,7 +123,6 @@ export function AuctionDetail() {
   }
 
   async function handleBuyout() {
-    if (isMock) { toast.info("데모 모드입니다."); return; }
     if (!auction) return;
     if (!isAuthenticated) { toast.error("로그인이 필요합니다."); navigate("/login"); return; }
     if (!requireBillingKey()) return;
@@ -235,7 +160,6 @@ export function AuctionDetail() {
 
   async function handleLike() {
     if (!isAuthenticated) { toast.error("로그인이 필요합니다."); return; }
-    if (isMock) { toast.info("데모 모드입니다."); return; }
     if (!auction) return;
     setIsLiking(true);
     try {
@@ -307,11 +231,6 @@ export function AuctionDetail() {
               {isActive && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5 animate-pulse" />}
               {statusCfg.label}
             </span>
-            {isMock && (
-              <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                데모
-              </span>
-            )}
           </div>
 
           <h1 className="text-2xl font-extrabold text-white mb-2 leading-tight">{auction.title}</h1>
@@ -394,7 +313,7 @@ export function AuctionDetail() {
                   <div>
                     <p className="font-semibold text-sm text-blue-300">낙찰을 축하합니다!</p>
                     <p className="text-xs text-blue-400/70 mt-0.5">
-                      낙찰 금액 {auction.highestPrice.toLocaleString()}원을 결제해주세요.
+                      낙찰 금액 {(auction.highestPrice ?? auction.startingPrice).toLocaleString()}원을 결제해주세요.
                     </p>
                   </div>
                 </div>
@@ -404,7 +323,7 @@ export function AuctionDetail() {
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-xl transition-colors disabled:opacity-50 text-sm font-bold flex items-center justify-center gap-2"
                 >
                   <CreditCard className="w-4 h-4" />
-                  {isPaying ? "결제 처리 중..." : `${auction.highestPrice.toLocaleString()}원 결제하기`}
+                  {isPaying ? "결제 처리 중..." : `${(auction.highestPrice ?? auction.startingPrice).toLocaleString()}원 결제하기`}
                 </button>
               </div>
             )}

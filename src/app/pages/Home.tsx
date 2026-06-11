@@ -10,12 +10,6 @@ import type { AuctionListItem } from "@/types/auction.types";
 import type { LikeResponse } from "@/types/like.types";
 import type { CardGrade, CardResponse } from "@/types/card.types";
 
-const MOCK_CARDS: { auctionId: number; imageUrl: string; name: string; grade: CardGrade; price: number; buyoutPrice: number }[] = [
-  { auctionId: 1, imageUrl: "https://images.pokemontcg.io/swsh12pt5/160_hires.png", name: "Radiant Charizard",  grade: "PSA_10", price: 1200000, buyoutPrice: 3000000 },
-  { auctionId: 2, imageUrl: "https://images.pokemontcg.io/sm115/7_hires.png",        name: "Radiant Alakazam",   grade: "BGS_10", price: 450000,  buyoutPrice: 1500000 },
-  { auctionId: 3, imageUrl: "https://images.pokemontcg.io/swsh12pt5/162_hires.png",  name: "Radiant Blastoise", grade: "PSA_9",  price: 320000,  buyoutPrice: 900000  },
-];
-
 const PIKACHU_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png";
 const EEVEE_URL   = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png";
 
@@ -128,7 +122,7 @@ export function Home() {
   const [hasMore, setHasMore]             = useState(false);
   const [isLoading, setIsLoading]         = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [useMock, setUseMock]             = useState(false);
+  const [loadError, setLoadError]         = useState(false);
 
   const [grade,       setGrade]       = useState("");
   const [category,    setCategory]    = useState("");
@@ -148,7 +142,7 @@ export function Home() {
 
   const fetchAuctions = useCallback(async (reset: boolean) => {
     const targetPage = reset ? 0 : page + 1;
-    if (reset) { setIsLoading(true); setUseMock(false); }
+    if (reset) { setIsLoading(true); setLoadError(false); }
     else        { setIsLoadingMore(true); }
 
     try {
@@ -162,7 +156,6 @@ export function Home() {
       });
 
       if (reset) {
-        if (res.content.length === 0 && !keyword && !grade && !category) setUseMock(true);
         setAuctions(res.content);
         setPage(0);
       } else {
@@ -173,7 +166,7 @@ export function Home() {
       setTotalElements(res.totalElements);
       setHasMore(targetPage < res.totalPages - 1);
     } catch {
-      if (reset) setUseMock(true);
+      if (reset) setLoadError(true);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
@@ -283,7 +276,7 @@ export function Home() {
               </div>
             )}
 
-            {!isLoading && !useMock && (
+            {!isLoading && !loadError && (
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-[#FFCB05]" />
                 <span className="text-sm text-white/70">
@@ -450,7 +443,7 @@ export function Home() {
                     imageUrl={auction.cardImageUrl}
                     cardName={auction.cardName}
                     grade={auction.grade}
-                    highestPrice={auction.highestPrice}
+                    highestPrice={auction.highestPrice ?? auction.startingPrice}
                     endedAt={auction.endedAt}
                     to={`/auctions/${auction.auctionId}`}
                   />
@@ -477,33 +470,17 @@ export function Home() {
                 </div>
               ))}
             </div>
-          ) : useMock ? (
-            <>
-              <div className="flex items-center gap-2 mb-4 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-                <span>🌟</span> 서버에 연결할 수 없어 샘플 데이터를 표시합니다.
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {MOCK_CARDS.map((card) => (
-                  <div
-                    key={card.name}
-                    onClick={() => navigate(`/auctions/${card.auctionId}`)}
-                    className="flex flex-col cursor-pointer group"
-                  >
-                    <CardItem imageUrl={card.imageUrl} name={card.name} grade={card.grade} className="w-full" />
-                    <div className="mt-3 space-y-1.5">
-                      <p className="text-sm font-semibold group-hover:text-[#CC0000] transition-colors">{card.name}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full inline-block ${gradeBadgeClass(card.grade)}`}>
-                        {card.grade}
-                      </span>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-[#CC0000]">{card.price.toLocaleString()}원</span>
-                        <span className="text-[11px] text-muted-foreground">즉시 {card.buyoutPrice.toLocaleString()}원</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
+          ) : loadError ? (
+            <div className="text-center py-20">
+              <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+              <p className="text-muted-foreground mb-4">경매 정보를 불러오지 못했습니다.</p>
+              <button
+                onClick={() => fetchAuctions(true)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#FFCB05] text-[#1a1a2e] hover:brightness-95 transition"
+              >
+                다시 시도
+              </button>
+            </div>
           ) : auctions.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-5xl mb-3">😴</p>
@@ -555,7 +532,7 @@ export function Home() {
                           {auction.grade}
                         </span>
                         <span className="text-sm font-bold text-[#CC0000]">
-                          {auction.highestPrice.toLocaleString()}원
+                          {(auction.highestPrice ?? auction.startingPrice).toLocaleString()}원
                         </span>
                       </div>
                       {auction.buyoutPrice > 0 && (
