@@ -25,16 +25,28 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   NO_BIDDER:       { label: "유찰",     color: "bg-white/10 text-white/50 border-white/20" },
 };
 
+/**
+ * 검수 전(미공개) 상태. 검수 합격으로 ACTIVE 가 되기 전까진 공개 경매 상세가
+ * 존재하지 않아, 상세 페이지(GET /auctions/{id})가 에러를 반환한다 → 진입 차단.
+ */
+const PRE_PUBLISH_STATUSES = ["PENDING", "INSPECTING", "REJECTED"];
+function isAuctionViewable(status: string) {
+  return !PRE_PUBLISH_STATUSES.includes(status);
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
 }
 
 function AuctionCard({ auction, onClick }: { auction: AuctionListItem; onClick: () => void }) {
   const status = STATUS_CONFIG[auction.status] ?? { label: auction.status, color: "bg-white/10 text-white/50 border-white/20" };
+  const viewable = isAuctionViewable(auction.status);
   return (
     <div
       onClick={onClick}
-      className="bg-card border rounded-2xl overflow-hidden hover:shadow-lg hover:border-[#CC0000]/30 transition-all cursor-pointer group"
+      className={`bg-card border rounded-2xl overflow-hidden transition-all group ${
+        viewable ? "hover:shadow-lg hover:border-[#CC0000]/30 cursor-pointer" : "cursor-default"
+      }`}
     >
       <div className="aspect-[3/2] bg-muted relative overflow-hidden">
         {auction.cardImageUrl ? (
@@ -96,6 +108,18 @@ export function MyAuctions() {
 
   const activeAuctions = myAuctions.filter(a => ["ACTIVE", "PENDING", "INSPECTING"].includes(a.status));
   const endedAuctions  = myAuctions.filter(a => ["ENDED", "PAYMENT_PENDING", "CANCELLED", "REJECTED", "NO_BIDDER"].includes(a.status));
+
+  function openAuction(a: AuctionListItem) {
+    if (!isAuctionViewable(a.status)) {
+      toast.info(
+        a.status === "REJECTED"
+          ? "검수에서 반려된 경매입니다. 경매장에 공개되지 않습니다."
+          : "아직 검수 중인 경매입니다. 검수 완료 후 경매장에 공개됩니다."
+      );
+      return;
+    }
+    navigate(`/auctions/${a.auctionId}`);
+  }
 
   if (authLoading || isLoading) {
     return (
@@ -201,7 +225,7 @@ export function MyAuctions() {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {activeAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => navigate(`/auctions/${a.auctionId}`)} />
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} />
                   ))}
                 </div>
               )}
@@ -217,7 +241,7 @@ export function MyAuctions() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {endedAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => navigate(`/auctions/${a.auctionId}`)} />
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} />
                   ))}
                 </div>
               </div>

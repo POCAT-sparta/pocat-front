@@ -9,7 +9,7 @@ export interface AuctionListItem {
   buyoutPrice: number;
   /** 입찰이 하나도 없으면 null (서버는 첫 입찰 전까지 null 반환) */
   highestPrice: number | null;
-  status: "ACTIVE" | "PENDING" | "ENDED" | "CANCELLED" | "PAYMENT_PENDING";
+  status: AuctionStatus;
   startedAt: string;
   endedAt: string;
 }

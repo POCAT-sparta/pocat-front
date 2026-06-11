@@ -22,20 +22,22 @@ export function Header() {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
 
   const navItems = [
     { path: "/",        label: "🏠 경매장"    },
     { path: "/cards",   label: "🃏 카드도감"   },
     { path: "/free",    label: "💬 자유게시판" },
     { path: "/trade",   label: "💰 거래게시판" },
-    { path: "/my-auctions", label: "⚡ 내 경매" },
-    ...(isAuthenticated
+    // 개인 트레이더 기능은 관리자에게 숨김
+    ...(!isAdmin ? [{ path: "/my-auctions", label: "⚡ 내 경매" }] : []),
+    ...(isAuthenticated && !isAdmin
       ? [
           { path: "/orders", label: "🧾 내 주문" },
           { path: "/chats", label: "📨 내 채팅" },
         ]
       : []),
-    ...(user?.role === "ADMIN"
+    ...(isAdmin
       ? [{ path: "/admin", label: "🛠 관리자" }]
       : []),
   ];
@@ -89,12 +91,14 @@ export function Header() {
             {isAuthenticated ? (
               <>
                 <NotificationBell />
-                <Link
-                  to="/auctions/new"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold bg-[#CC0000] hover:bg-[#aa0000] text-white transition-colors"
-                >
-                  <Gavel className="w-3.5 h-3.5" /> 경매 등록
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    to="/auctions/new"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold bg-[#CC0000] hover:bg-[#aa0000] text-white transition-colors"
+                  >
+                    <Gavel className="w-3.5 h-3.5" /> 경매 등록
+                  </Link>
+                )}
                 <Link
                   to="/profile"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-sm text-white"
@@ -165,13 +169,15 @@ export function Header() {
             <div className="border-t border-white/10 pt-3 mt-3 space-y-1">
               {isAuthenticated ? (
                 <>
-                  <Link
-                    to="/auctions/new"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#CC0000] hover:bg-[#aa0000] text-white transition-colors"
-                  >
-                    <Gavel className="w-4 h-4" /> 경매 등록
-                  </Link>
+                  {!isAdmin && (
+                    <Link
+                      to="/auctions/new"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#CC0000] hover:bg-[#aa0000] text-white transition-colors"
+                    >
+                      <Gavel className="w-4 h-4" /> 경매 등록
+                    </Link>
+                  )}
                   <Link
                     to="/profile"
                     onClick={() => setIsMenuOpen(false)}
