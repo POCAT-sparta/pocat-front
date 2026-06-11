@@ -59,7 +59,7 @@ function AuctionCard({ auction, onClick }: { auction: AuctionListItem; onClick: 
         <p className="text-sm font-semibold line-clamp-1 group-hover:text-[#CC0000] transition-colors">{auction.title}</p>
         <p className="text-xs text-muted-foreground line-clamp-1">{auction.cardName}</p>
         <div className="flex items-center justify-between pt-1">
-          <span className="text-sm font-extrabold text-[#CC0000]">{auction.highestPrice.toLocaleString()}원</span>
+          <span className="text-sm font-extrabold text-[#CC0000]">{(auction.highestPrice ?? auction.startingPrice).toLocaleString()}원</span>
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Clock className="w-3 h-3" />
             {formatDate(auction.endedAt)}

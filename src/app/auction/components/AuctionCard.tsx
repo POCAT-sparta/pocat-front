@@ -66,7 +66,7 @@ export function AuctionCard({ auction }: AuctionCardProps) {
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">현재 입찰가</span>
               <span className="font-bold text-red-500 text-sm">
-                {auction.highestPrice.toLocaleString()}원
+                {(auction.highestPrice ?? auction.startingPrice).toLocaleString()}원
               </span>
             </div>
 

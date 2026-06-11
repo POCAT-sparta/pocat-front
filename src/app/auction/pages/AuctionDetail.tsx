@@ -286,7 +286,7 @@ export function AuctionDetail() {
   const isPaymentPending = auction.status === "PAYMENT_PENDING";
   const isOwner          = user?.id === auction.sellerId;
   const isWinner         = user?.id === auction.highestBidderId;
-  const minBid           = auction.highestPrice + 1;
+  const minBid           = auction.highestPrice != null ? auction.highestPrice + 1 : auction.startingPrice;
   const statusCfg        = STATUS_CONFIG[auction.status] ?? { label: auction.status, color: "bg-white/10 text-white/50 border-white/20" };
 
   return (
@@ -360,7 +360,7 @@ export function AuctionDetail() {
               </div>
               <div className="border-t pt-3">
                 <p className="text-xs text-muted-foreground mb-1">현재 최고 입찰가</p>
-                <p className="text-3xl font-extrabold text-[#CC0000]">{auction.highestPrice.toLocaleString()}원</p>
+                <p className="text-3xl font-extrabold text-[#CC0000]">{(auction.highestPrice ?? auction.startingPrice).toLocaleString()}원</p>
                 {auction.highestBidderNickname && (
                   <p className="text-xs text-muted-foreground mt-1">
                     최고 입찰자: <span className="font-medium text-foreground">{auction.highestBidderNickname}</span>
