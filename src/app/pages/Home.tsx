@@ -151,15 +151,23 @@ export function Home() {
         grade:   grade    || undefined,
         cardCategory: category ? (category as "POKEMON" | "TRAINERS" | "ENERGY" | "UNKNOWN") : undefined,
         sort,
+        status: "ACTIVE",
         page: targetPage,
         size: PAGE_SIZE,
       });
 
+      // 백엔드가 status 필터를 무시하는 경우를 대비한 방어용 클라이언트 필터.
+      // 진행 중(ACTIVE)이면서 마감 시각이 지나지 않은 경매만 노출한다.
+      const now = Date.now();
+      const activeContent = res.content.filter(
+        (a) => a.status === "ACTIVE" && new Date(a.endedAt).getTime() > now
+      );
+
       if (reset) {
-        setAuctions(res.content);
+        setAuctions(activeContent);
         setPage(0);
       } else {
-        setAuctions((prev) => [...prev, ...res.content]);
+        setAuctions((prev) => [...prev, ...activeContent]);
         setPage(targetPage);
       }
 

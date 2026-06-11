@@ -25,6 +25,8 @@ export interface AuctionDetail extends AuctionListItem {
   isLiked: boolean;
 }
 
+export type AuctionStatus = "PENDING" | "INSPECTING" | "REJECTED" | "ACTIVE" | "ENDED" | "NO_BIDDER" | "CANCELLED" | "PAYMENT_PENDING";
+
 export interface AuctionListParams {
   keyword?: string;
   series?: string;
@@ -34,9 +36,8 @@ export interface AuctionListParams {
   size?: number;
   cardCategory?: "POKEMON" | "TRAINERS" | "ENERGY" | "UNKNOWN";
   sort?: string;
+  status?: AuctionStatus;
 }
-
-export type AuctionStatus = "PENDING" | "INSPECTING" | "REJECTED" | "ACTIVE" | "ENDED" | "NO_BIDDER" | "CANCELLED" | "PAYMENT_PENDING";
 
 export interface MyAuctionParams {
   status?: AuctionStatus;
