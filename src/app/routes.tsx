@@ -22,6 +22,9 @@ import { CardDetail } from "@/app/card/pages/CardDetail";
 import { AdminRoute } from "@/app/admin/components/AdminRoute";
 import { AdminLayout } from "@/app/admin/components/AdminLayout";
 import { AdminUsers } from "@/app/admin/pages/AdminUsers";
+import { AdminCards } from "@/app/admin/pages/AdminCards";
+import { AdminCatalog } from "@/app/admin/pages/AdminCatalog";
+import { AdminAuctions } from "@/app/admin/pages/AdminAuctions";
 
 export const router = createBrowserRouter([
   {
@@ -74,7 +77,10 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         children: [
           { index: true, element: <Navigate to="users" replace /> },
-          { path: "users", Component: AdminUsers },
+          { path: "users",    Component: AdminUsers    },
+          { path: "cards",    Component: AdminCards    },
+          { path: "catalog",  Component: AdminCatalog  },
+          { path: "auctions", Component: AdminAuctions },
         ],
       },
     ],
