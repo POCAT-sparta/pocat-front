@@ -15,6 +15,9 @@ import {
 } from "../components/AdminUI";
 import { AdminModal, adminInputClass, AdminPrimaryButton } from "../components/AdminModal";
 
+// 검수(승인/거절) 가능 상태. 백엔드 validateInspectable 이 PENDING/INSPECTING 을 허용한다.
+// INSPECTING 전이 코드가 없어 실제로는 PENDING 에서 바로 승인(→ACTIVE)/거절(→REJECTED) 한다.
+const INSPECTABLE: AuctionStatus[] = ["PENDING", "INSPECTING"];
 const CANCELLABLE: AuctionStatus[] = ["INSPECTING", "ACTIVE", "PENDING", "PAYMENT_PENDING"];
 
 const PAGE_SIZE = 20;
@@ -105,11 +108,11 @@ export function AdminAuctions() {
   }
 
   async function handlePass(a: AdminAuctionResponse) {
-    if (!window.confirm(`"${a.title}" 경매를 검수 합격 처리할까요?`)) return;
+    if (!window.confirm(`"${a.title}" 경매를 승인할까요? 승인 즉시 경매가 활성화됩니다.`)) return;
     setBusyId(a.auctionId);
     try {
       await inspectAuction(a.auctionId, { result: "PASSED" });
-      toast.success("검수 합격 처리했습니다.");
+      toast.success("경매를 승인했습니다. (활성화)");
       setReloadKey((k) => k + 1);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "검수 처리에 실패했습니다.");
@@ -120,11 +123,11 @@ export function AdminAuctions() {
 
   async function submitFail() {
     if (!failTarget) return;
-    if (!failReason.trim()) { toast.error("불합격 사유를 입력해주세요."); return; }
+    if (!failReason.trim()) { toast.error("거절 사유를 입력해주세요."); return; }
     setBusyId(failTarget.auctionId);
     try {
       await inspectAuction(failTarget.auctionId, { result: "FAILED", reason: failReason.trim() });
-      toast.success("검수 불합격 처리했습니다.");
+      toast.success("경매를 거절했습니다.");
       setFailTarget(null);
       setFailReason("");
       setReloadKey((k) => k + 1);
@@ -243,13 +246,13 @@ export function AdminAuctions() {
                 <td className="px-4 py-3 text-white/50">{formatDate(a.endedAt)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1.5">
-                    {a.status === "INSPECTING" && (
+                    {INSPECTABLE.includes(a.status) && (
                       <>
                         <RowActionButton tone="green" disabled={busyId === a.auctionId} onClick={() => handlePass(a)}>
-                          합격
+                          승인
                         </RowActionButton>
                         <RowActionButton tone="red" disabled={busyId === a.auctionId} onClick={() => { setFailTarget(a); setFailReason(""); }}>
-                          불합격
+                          거절
                         </RowActionButton>
                       </>
                     )}
@@ -258,7 +261,7 @@ export function AdminAuctions() {
                         취소
                       </RowActionButton>
                     )}
-                    {a.status !== "INSPECTING" && !CANCELLABLE.includes(a.status) && (
+                    {!INSPECTABLE.includes(a.status) && !CANCELLABLE.includes(a.status) && (
                       <span className="text-white/20 text-xs">—</span>
                     )}
                   </div>
@@ -272,15 +275,15 @@ export function AdminAuctions() {
 
       <AdminPagination page={page} totalPages={totalPages} onChange={setPage} />
 
-      {/* 검수 불합격 사유 모달 */}
+      {/* 경매 거절 사유 모달 */}
       {failTarget && (
-        <AdminModal title={`검수 불합격 — ${failTarget.title}`} onClose={() => setFailTarget(null)}>
-          <label className="block text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">불합격 사유</label>
+        <AdminModal title={`경매 거절 — ${failTarget.title}`} onClose={() => setFailTarget(null)}>
+          <label className="block text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">거절 사유</label>
           <textarea
             value={failReason}
             onChange={(e) => setFailReason(e.target.value)}
             rows={3}
-            placeholder="불합격 사유를 입력하세요"
+            placeholder="거절 사유를 입력하세요"
             className={adminInputClass}
             autoFocus
           />
@@ -289,7 +292,7 @@ export function AdminAuctions() {
               취소
             </button>
             <AdminPrimaryButton disabled={busyId === failTarget.auctionId} onClick={submitFail}>
-              {busyId === failTarget.auctionId ? "처리 중..." : "불합격 처리"}
+              {busyId === failTarget.auctionId ? "처리 중..." : "거절 처리"}
             </AdminPrimaryButton>
           </div>
         </AdminModal>
