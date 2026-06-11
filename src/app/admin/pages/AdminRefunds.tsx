@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getAdminRefunds } from "@/api/admin";
+import { getAdminRefunds, approveRefund, rejectRefund } from "@/api/admin";
 import type { AdminRefundResponse, RefundStatus } from "@/types/admin.types";
 import {
   AdminPageHeader,
@@ -8,7 +8,9 @@ import {
   AdminState,
   AdminPagination,
   StatusBadge,
+  RowActionButton,
 } from "../components/AdminUI";
+import { AdminModal, adminInputClass, AdminPrimaryButton } from "../components/AdminModal";
 
 const PAGE_SIZE = 20;
 
@@ -49,6 +51,12 @@ export function AdminRefunds() {
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<RefundStatus | undefined>(undefined);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // mutation 상태
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<AdminRefundResponse | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -63,7 +71,38 @@ export function AdminRefunds() {
       .catch(() => alive && toast.error("환불 목록을 불러오지 못했습니다."))
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [status, page]);
+  }, [status, page, reloadKey]);
+
+  async function handleApprove(r: AdminRefundResponse) {
+    if (!window.confirm(`환불 #${r.refundId} (${r.amount.toLocaleString()}원)을 승인할까요?`)) return;
+    setBusyId(r.refundId);
+    try {
+      await approveRefund(r.refundId);
+      toast.success("환불을 승인했습니다.");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "환불 승인에 실패했습니다.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function submitReject() {
+    if (!rejectTarget) return;
+    if (!rejectReason.trim()) { toast.error("거절 사유를 입력해주세요."); return; }
+    setBusyId(rejectTarget.refundId);
+    try {
+      await rejectRefund(rejectTarget.refundId, { rejectReason: rejectReason.trim() });
+      toast.success("환불을 거절했습니다.");
+      setRejectTarget(null);
+      setRejectReason("");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "환불 거절에 실패했습니다.");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <div>
@@ -98,6 +137,7 @@ export function AdminRefunds() {
               <th className="px-4 py-3 font-medium">사유</th>
               <th className="px-4 py-3 font-medium">상태</th>
               <th className="px-4 py-3 font-medium">요청일</th>
+              <th className="px-4 py-3 font-medium text-right">작업</th>
             </tr>
           </thead>
           <tbody>
@@ -114,6 +154,20 @@ export function AdminRefunds() {
                   <StatusBadge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</StatusBadge>
                 </td>
                 <td className="px-4 py-3 text-white/50">{formatDate(r.createdAt)}</td>
+                <td className="px-4 py-3">
+                  {r.status === "REQUESTED" ? (
+                    <div className="flex items-center justify-end gap-1.5">
+                      <RowActionButton tone="green" disabled={busyId === r.refundId} onClick={() => handleApprove(r)}>
+                        승인
+                      </RowActionButton>
+                      <RowActionButton tone="red" disabled={busyId === r.refundId} onClick={() => { setRejectTarget(r); setRejectReason(""); }}>
+                        거절
+                      </RowActionButton>
+                    </div>
+                  ) : (
+                    <div className="text-right text-white/20 text-xs">—</div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -122,6 +176,29 @@ export function AdminRefunds() {
       </AdminPanel>
 
       <AdminPagination page={page} totalPages={totalPages} onChange={setPage} />
+
+      {/* 환불 거절 사유 모달 */}
+      {rejectTarget && (
+        <AdminModal title={`환불 거절 — #${rejectTarget.refundId}`} onClose={() => setRejectTarget(null)}>
+          <label className="block text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">거절 사유</label>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            rows={3}
+            placeholder="거절 사유를 입력하세요"
+            className={adminInputClass}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 mt-5">
+            <button onClick={() => setRejectTarget(null)} className="px-4 py-2 rounded-xl text-sm text-white/60 hover:bg-white/10 transition">
+              취소
+            </button>
+            <AdminPrimaryButton disabled={busyId === rejectTarget.refundId} onClick={submitReject}>
+              {busyId === rejectTarget.refundId ? "처리 중..." : "거절하기"}
+            </AdminPrimaryButton>
+          </div>
+        </AdminModal>
+      )}
     </div>
   );
 }

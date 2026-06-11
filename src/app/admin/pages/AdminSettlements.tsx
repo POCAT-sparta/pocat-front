@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
-import { getAdminSettlements } from "@/api/admin";
+import { getAdminSettlements, completeSettlement } from "@/api/admin";
 import type { AdminSettlementResponse, SettlementStatus } from "@/types/admin.types";
 import {
   AdminPageHeader,
@@ -9,6 +9,7 @@ import {
   AdminState,
   AdminPagination,
   StatusBadge,
+  RowActionButton,
 } from "../components/AdminUI";
 
 const PAGE_SIZE = 20;
@@ -43,6 +44,8 @@ export function AdminSettlements() {
   const [status, setStatus] = useState<SettlementStatus | undefined>(undefined);
   const [input, setInput] = useState("");
   const [seller, setSeller] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const [busyUid, setBusyUid] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -57,11 +60,25 @@ export function AdminSettlements() {
       .catch(() => alive && toast.error("정산 목록을 불러오지 못했습니다."))
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [status, seller, page]);
+  }, [status, seller, page, reloadKey]);
 
   function applySearch() {
     setPage(0);
     setSeller(input.trim());
+  }
+
+  async function handleComplete(s: AdminSettlementResponse) {
+    if (!window.confirm(`${s.sellerNickname} 님의 정산(${s.sellerAmount.toLocaleString()}원)을 완료 처리할까요?`)) return;
+    setBusyUid(s.settlementUid);
+    try {
+      await completeSettlement(s.settlementUid);
+      toast.success("정산을 완료 처리했습니다.");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "정산 완료 처리에 실패했습니다.");
+    } finally {
+      setBusyUid(null);
+    }
   }
 
   return (
@@ -118,6 +135,7 @@ export function AdminSettlements() {
               <th className="px-4 py-3 font-medium text-right">정산액</th>
               <th className="px-4 py-3 font-medium">상태</th>
               <th className="px-4 py-3 font-medium">정산일</th>
+              <th className="px-4 py-3 font-medium text-right">작업</th>
             </tr>
           </thead>
           <tbody>
@@ -134,6 +152,17 @@ export function AdminSettlements() {
                 <td className="px-4 py-3 text-right text-white font-medium">{s.sellerAmount.toLocaleString()}원</td>
                 <td className="px-4 py-3">{statusBadge(s.status)}</td>
                 <td className="px-4 py-3 text-white/50">{formatDate(s.settledAt)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end">
+                    {s.status === "PENDING" ? (
+                      <RowActionButton tone="green" disabled={busyUid === s.settlementUid} onClick={() => handleComplete(s)}>
+                        완료 처리
+                      </RowActionButton>
+                    ) : (
+                      <span className="text-white/20 text-xs">—</span>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

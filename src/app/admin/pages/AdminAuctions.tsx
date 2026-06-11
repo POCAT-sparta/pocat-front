@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
-import { getAdminAuctions } from "@/api/admin";
+import { getAdminAuctions, inspectAuction, adminCancelAuction } from "@/api/admin";
 import type { AdminAuctionResponse } from "@/types/admin.types";
 import type { AuctionStatus } from "@/types/auction.types";
 import type { CardGrade } from "@/types/card.types";
@@ -11,7 +11,11 @@ import {
   AdminState,
   AdminPagination,
   StatusBadge,
+  RowActionButton,
 } from "../components/AdminUI";
+import { AdminModal, adminInputClass, AdminPrimaryButton } from "../components/AdminModal";
+
+const CANCELLABLE: AuctionStatus[] = ["INSPECTING", "ACTIVE", "PENDING", "PAYMENT_PENDING"];
 
 const PAGE_SIZE = 20;
 
@@ -71,6 +75,14 @@ export function AdminAuctions() {
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<AuctionStatus | undefined>(undefined);
   const [grade, setGrade] = useState<CardGrade | undefined>(undefined);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // mutation 상태
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [failTarget, setFailTarget] = useState<AdminAuctionResponse | null>(null);
+  const [failReason, setFailReason] = useState("");
+  const [cancelTarget, setCancelTarget] = useState<AdminAuctionResponse | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -85,11 +97,59 @@ export function AdminAuctions() {
       .catch(() => alive && toast.error("경매 목록을 불러오지 못했습니다."))
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [keyword, status, grade, page]);
+  }, [keyword, status, grade, page, reloadKey]);
 
   function applySearch() {
     setPage(0);
     setKeyword(input.trim());
+  }
+
+  async function handlePass(a: AdminAuctionResponse) {
+    if (!window.confirm(`"${a.title}" 경매를 검수 합격 처리할까요?`)) return;
+    setBusyId(a.auctionId);
+    try {
+      await inspectAuction(a.auctionId, { result: "PASSED" });
+      toast.success("검수 합격 처리했습니다.");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "검수 처리에 실패했습니다.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function submitFail() {
+    if (!failTarget) return;
+    if (!failReason.trim()) { toast.error("불합격 사유를 입력해주세요."); return; }
+    setBusyId(failTarget.auctionId);
+    try {
+      await inspectAuction(failTarget.auctionId, { result: "FAILED", reason: failReason.trim() });
+      toast.success("검수 불합격 처리했습니다.");
+      setFailTarget(null);
+      setFailReason("");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "검수 처리에 실패했습니다.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function submitCancel() {
+    if (!cancelTarget) return;
+    if (!cancelReason.trim()) { toast.error("취소 사유를 입력해주세요."); return; }
+    setBusyId(cancelTarget.auctionId);
+    try {
+      await adminCancelAuction(cancelTarget.auctionId, { reason: cancelReason.trim() });
+      toast.success("경매를 취소했습니다.");
+      setCancelTarget(null);
+      setCancelReason("");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "취소에 실패했습니다.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
@@ -155,6 +215,7 @@ export function AdminAuctions() {
               <th className="px-4 py-3 font-medium text-right">즉구가</th>
               <th className="px-4 py-3 font-medium">상태</th>
               <th className="px-4 py-3 font-medium">종료</th>
+              <th className="px-4 py-3 font-medium text-right">작업</th>
             </tr>
           </thead>
           <tbody>
@@ -180,6 +241,28 @@ export function AdminAuctions() {
                   <StatusBadge tone={STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</StatusBadge>
                 </td>
                 <td className="px-4 py-3 text-white/50">{formatDate(a.endedAt)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1.5">
+                    {a.status === "INSPECTING" && (
+                      <>
+                        <RowActionButton tone="green" disabled={busyId === a.auctionId} onClick={() => handlePass(a)}>
+                          합격
+                        </RowActionButton>
+                        <RowActionButton tone="red" disabled={busyId === a.auctionId} onClick={() => { setFailTarget(a); setFailReason(""); }}>
+                          불합격
+                        </RowActionButton>
+                      </>
+                    )}
+                    {CANCELLABLE.includes(a.status) && (
+                      <RowActionButton disabled={busyId === a.auctionId} onClick={() => { setCancelTarget(a); setCancelReason(""); }}>
+                        취소
+                      </RowActionButton>
+                    )}
+                    {a.status !== "INSPECTING" && !CANCELLABLE.includes(a.status) && (
+                      <span className="text-white/20 text-xs">—</span>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -188,6 +271,52 @@ export function AdminAuctions() {
       </AdminPanel>
 
       <AdminPagination page={page} totalPages={totalPages} onChange={setPage} />
+
+      {/* 검수 불합격 사유 모달 */}
+      {failTarget && (
+        <AdminModal title={`검수 불합격 — ${failTarget.title}`} onClose={() => setFailTarget(null)}>
+          <label className="block text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">불합격 사유</label>
+          <textarea
+            value={failReason}
+            onChange={(e) => setFailReason(e.target.value)}
+            rows={3}
+            placeholder="불합격 사유를 입력하세요"
+            className={adminInputClass}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 mt-5">
+            <button onClick={() => setFailTarget(null)} className="px-4 py-2 rounded-xl text-sm text-white/60 hover:bg-white/10 transition">
+              취소
+            </button>
+            <AdminPrimaryButton disabled={busyId === failTarget.auctionId} onClick={submitFail}>
+              {busyId === failTarget.auctionId ? "처리 중..." : "불합격 처리"}
+            </AdminPrimaryButton>
+          </div>
+        </AdminModal>
+      )}
+
+      {/* 경매 취소 사유 모달 */}
+      {cancelTarget && (
+        <AdminModal title={`경매 취소 — ${cancelTarget.title}`} onClose={() => setCancelTarget(null)}>
+          <label className="block text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">취소 사유</label>
+          <textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            rows={3}
+            placeholder="취소 사유를 입력하세요"
+            className={adminInputClass}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 mt-5">
+            <button onClick={() => setCancelTarget(null)} className="px-4 py-2 rounded-xl text-sm text-white/60 hover:bg-white/10 transition">
+              닫기
+            </button>
+            <AdminPrimaryButton disabled={busyId === cancelTarget.auctionId} onClick={submitCancel}>
+              {busyId === cancelTarget.auctionId ? "처리 중..." : "경매 취소"}
+            </AdminPrimaryButton>
+          </div>
+        </AdminModal>
+      )}
     </div>
   );
 }

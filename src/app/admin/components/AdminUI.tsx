@@ -66,6 +66,24 @@ export function AdminPagination({ page, totalPages, onChange }: { page: number; 
   );
 }
 
+/** 테이블 행 액션 버튼 (소형) */
+export function RowActionButton({ children, onClick, disabled, tone = "default" }: { children: ReactNode; onClick: () => void; disabled?: boolean; tone?: "default" | "green" | "red" }) {
+  const tones: Record<string, string> = {
+    default: "bg-white/10 text-white/80 hover:bg-white/20",
+    green: "bg-green-500/15 text-green-400 hover:bg-green-500/25",
+    red: "bg-red-500/15 text-red-400 hover:bg-red-500/25",
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${tones[tone]}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 /** 상태 배지 */
 export function StatusBadge({ children, tone = "default" }: { children: ReactNode; tone?: "default" | "green" | "red" | "yellow" | "blue" }) {
   const tones: Record<string, string> = {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getCardRequests } from "@/api/admin";
+import { getCardRequests, approveCard, rejectCard } from "@/api/admin";
 import type { CardResponse, CardStatus } from "@/types/card.types";
 import {
   AdminPageHeader,
@@ -8,7 +8,9 @@ import {
   AdminState,
   AdminPagination,
   StatusBadge,
+  RowActionButton,
 } from "../components/AdminUI";
+import { AdminModal, adminInputClass, AdminPrimaryButton } from "../components/AdminModal";
 
 const PAGE_SIZE = 20;
 
@@ -38,6 +40,12 @@ export function AdminCards() {
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<CardStatus | undefined>("PENDING");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // mutation 상태
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<CardResponse | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -52,7 +60,38 @@ export function AdminCards() {
       .catch(() => alive && toast.error("카드 요청 목록을 불러오지 못했습니다."))
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [status, page]);
+  }, [status, page, reloadKey]);
+
+  async function handleApprove(card: CardResponse) {
+    if (!window.confirm(`"${card.name}" 카드를 승인할까요?`)) return;
+    setBusyId(card.id);
+    try {
+      await approveCard(card.id);
+      toast.success("카드를 승인했습니다.");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "승인에 실패했습니다.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function submitReject() {
+    if (!rejectTarget) return;
+    if (!rejectReason.trim()) { toast.error("거절 사유를 입력해주세요."); return; }
+    setBusyId(rejectTarget.id);
+    try {
+      await rejectCard(rejectTarget.id, { rejectReason: rejectReason.trim() });
+      toast.success("카드를 거절했습니다.");
+      setRejectTarget(null);
+      setRejectReason("");
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "거절에 실패했습니다.");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <div>
@@ -87,6 +126,7 @@ export function AdminCards() {
               <th className="px-4 py-3 font-medium">카테고리</th>
               <th className="px-4 py-3 font-medium">상태</th>
               <th className="px-4 py-3 font-medium">요청일</th>
+              <th className="px-4 py-3 font-medium text-right">작업</th>
             </tr>
           </thead>
           <tbody>
@@ -112,6 +152,20 @@ export function AdminCards() {
                 <td className="px-4 py-3 text-white/50">{c.category}</td>
                 <td className="px-4 py-3">{statusBadge(c.status)}</td>
                 <td className="px-4 py-3 text-white/50">{formatDate(c.createdAt)}</td>
+                <td className="px-4 py-3">
+                  {c.status === "PENDING" ? (
+                    <div className="flex items-center justify-end gap-1.5">
+                      <RowActionButton tone="green" disabled={busyId === c.id} onClick={() => handleApprove(c)}>
+                        승인
+                      </RowActionButton>
+                      <RowActionButton tone="red" disabled={busyId === c.id} onClick={() => { setRejectTarget(c); setRejectReason(""); }}>
+                        거절
+                      </RowActionButton>
+                    </div>
+                  ) : (
+                    <div className="text-right text-white/20 text-xs">—</div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -120,6 +174,32 @@ export function AdminCards() {
       </AdminPanel>
 
       <AdminPagination page={page} totalPages={totalPages} onChange={setPage} />
+
+      {/* 거절 사유 모달 */}
+      {rejectTarget && (
+        <AdminModal title={`카드 거절 — ${rejectTarget.name}`} onClose={() => setRejectTarget(null)}>
+          <label className="block text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">거절 사유</label>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            rows={3}
+            placeholder="거절 사유를 입력하세요"
+            className={adminInputClass}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 mt-5">
+            <button
+              onClick={() => setRejectTarget(null)}
+              className="px-4 py-2 rounded-xl text-sm text-white/60 hover:bg-white/10 transition"
+            >
+              취소
+            </button>
+            <AdminPrimaryButton disabled={busyId === rejectTarget.id} onClick={submitReject}>
+              {busyId === rejectTarget.id ? "처리 중..." : "거절하기"}
+            </AdminPrimaryButton>
+          </div>
+        </AdminModal>
+      )}
     </div>
   );
 }
