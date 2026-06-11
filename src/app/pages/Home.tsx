@@ -86,7 +86,7 @@ function AuctionMiniCard({ imageUrl, cardName, grade, highestPrice, endedAt, to 
   imageUrl: string | null;
   cardName: string;
   grade: string;
-  highestPrice: number;
+  highestPrice: number | null;
   endedAt: string;
   to: string;
 }) {
@@ -103,7 +103,7 @@ function AuctionMiniCard({ imageUrl, cardName, grade, highestPrice, endedAt, to 
         </span>
       </div>
       <p className="text-[11px] font-semibold mt-1.5 line-clamp-1 group-hover:text-[#CC0000] transition-colors">{cardName}</p>
-      <p className="text-xs text-[#CC0000] font-bold">{highestPrice.toLocaleString()}원</p>
+      <p className="text-xs text-[#CC0000] font-bold">{highestPrice != null ? `${highestPrice.toLocaleString()}원` : "입찰 전"}</p>
       <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground mt-0.5">
         <Clock className="w-2.5 h-2.5 shrink-0" />
         <CountdownTimer endedAt={endedAt} />
