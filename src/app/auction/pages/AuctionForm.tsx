@@ -3,9 +3,10 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, Gavel, ImageIcon, Search, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/auth/context/AuthContext";
-import { getMyRequests } from "@/api/card/cardApi";
+import { getCards } from "@/api/card/cardApi";
 import { createAuction } from "@/api/auction/auctionApi";
 import { CardItem } from "@/app/card/components/CardItem";
+import { SeriesSetFilter, type SeriesSetSelection } from "@/app/card/components/SeriesSetFilter";
 import type { CardResponse, CardGrade } from "@/types/card.types";
 
 function gradeLabel(grade: string) {
@@ -27,10 +28,17 @@ export function AuctionForm() {
 
   const [step, setStep] = useState<1 | 2>(1);
 
-  // Step 1: card selection
-  const [cards,     setCards]     = useState<CardResponse[]>([]);
-  const [cardQuery, setCardQuery] = useState("");
+  // Step 1: card selection — 도감 전체(GET /v1/cards, ACTIVE)에서 검색
+  const CARD_PAGE_SIZE = 20;
+  const [cards, setCards] = useState<CardResponse[]>([]);
+  const [searchInput, setSearchInput] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [seriesName, setSeriesName] = useState<string | undefined>(undefined);
+  const [setName, setSetName] = useState<string | undefined>(undefined);
+  const [cardPage, setCardPage] = useState(0);
+  const [cardTotalPages, setCardTotalPages] = useState(0);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
+  const [isLoadingMoreCards, setIsLoadingMoreCards] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardResponse | null>(null);
 
   // Step 2: auction details
@@ -40,19 +48,49 @@ export function AuctionForm() {
   const [buyoutPrice,  setBuyoutPrice]  = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isAuthenticated) { navigate("/login"); return; }
-    setIsLoadingCards(true);
-    getMyRequests({ status: "ACTIVE", size: 100 })
-      .then(res => setCards(res.content))
-      .catch(() => setCards([]))
-      .finally(() => setIsLoadingCards(false));
-  }, [isAuthenticated, navigate]);
+  async function loadCards(reset: boolean) {
+    const nextPage = reset ? 0 : cardPage + 1;
+    if (reset) setIsLoadingCards(true);
+    else setIsLoadingMoreCards(true);
+    try {
+      const res = await getCards({
+        keyword: keyword || undefined,
+        series: seriesName,
+        setName: setName,
+        page: nextPage,
+        size: CARD_PAGE_SIZE,
+      });
+      setCards((prev) => (reset ? res.content : [...prev, ...res.content]));
+      setCardPage(nextPage);
+      setCardTotalPages(res.totalPages);
+    } catch {
+      toast.error("카드를 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingCards(false);
+      setIsLoadingMoreCards(false);
+    }
+  }
 
-  const filteredCards = cards.filter(c =>
-    c.name.toLowerCase().includes(cardQuery.toLowerCase()) ||
-    c.setName.toLowerCase().includes(cardQuery.toLowerCase())
-  );
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    loadCards(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, keyword, seriesName, setName]);
+
+  const hasMoreCards = cardPage + 1 < cardTotalPages;
+
+  function handleFilterChange(sel: SeriesSetSelection) {
+    setSeriesName(sel.series?.name);
+    setSetName(sel.set?.name);
+  }
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setKeyword(searchInput.trim());
+  }
 
   function handleSelectCard(card: CardResponse) {
     setSelectedCard(card);
@@ -147,15 +185,18 @@ export function AuctionForm() {
         {/* ── Step 1: card picker ─────────────────────────────────────── */}
         {step === 1 && (
           <div className="space-y-6">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                value={cardQuery}
-                onChange={e => setCardQuery(e.target.value)}
-                placeholder="카드 이름 또는 세트명으로 검색..."
-                className="w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm bg-background focus:outline-none focus:border-[#CC0000] transition-colors"
-              />
+            {/* Search + 필터 */}
+            <div className="space-y-3">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="카드 이름으로 검색 후 Enter..."
+                  className="w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm bg-background focus:outline-none focus:border-[#CC0000] transition-colors"
+                />
+              </form>
+              <SeriesSetFilter includeAll onChange={handleFilterChange} />
             </div>
 
             {isLoadingCards ? (
@@ -164,53 +205,76 @@ export function AuctionForm() {
                   <div key={i} className="aspect-[2/3] bg-muted rounded-2xl animate-pulse" />
                 ))}
               </div>
-            ) : filteredCards.length === 0 ? (
+            ) : cards.length === 0 ? (
               <div className="text-center py-16 space-y-3">
-                <div className="text-5xl">💰</div>
-                <p className="text-muted-foreground font-medium">등록된 카드가 없습니다.</p>
+                <div className="text-5xl">🔍</div>
+                <p className="text-muted-foreground font-medium">검색 결과가 없습니다.</p>
                 <p className="text-sm text-muted-foreground">
-                  경매를 등록하려면 먼저 카드를 등록하고 승인을 받아야 합니다.
+                  찾는 카드가 도감에 없다면{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/cards/register")}
+                    className="text-[#CC0000] font-semibold underline underline-offset-2"
+                  >
+                    도감에 카드 추가
+                  </button>
+                  를 해보세요.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-                {filteredCards.map(card => (
-                  <button
-                    key={card.id}
-                    onClick={() => handleSelectCard(card)}
-                    className={`group relative text-left rounded-2xl transition-all ${
-                      selectedCard?.id === card.id
-                        ? "ring-2 ring-[#CC0000] ring-offset-2 ring-offset-background"
-                        : "hover:ring-2 hover:ring-white/20 hover:ring-offset-2 hover:ring-offset-background"
-                    }`}
-                  >
-                    {card.imageUrl ? (
-                      <CardItem
-                        imageUrl={card.imageUrl}
-                        name={card.name}
-                        grade={card.grade as CardGrade}
-                        className="w-full"
-                      />
-                    ) : (
-                      <div className="aspect-[2/3] rounded-xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center text-4xl border border-white/10">
-                        💰
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+                  {cards.map((card) => (
+                    <button
+                      key={card.id}
+                      onClick={() => handleSelectCard(card)}
+                      className={`group relative text-left rounded-2xl transition-all ${
+                        selectedCard?.id === card.id
+                          ? "ring-2 ring-[#CC0000] ring-offset-2 ring-offset-background"
+                          : "hover:ring-2 hover:ring-white/20 hover:ring-offset-2 hover:ring-offset-background"
+                      }`}
+                    >
+                      {card.imageUrl ? (
+                        <CardItem
+                          imageUrl={card.imageUrl}
+                          name={card.name}
+                          grade={card.grade as CardGrade}
+                          className="w-full"
+                        />
+                      ) : (
+                        <div className="aspect-[2/3] rounded-xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center text-4xl border border-white/10">
+                          💰
+                        </div>
+                      )}
+                      <div className="mt-2 px-1">
+                        <p className="text-xs font-semibold truncate">{card.name}</p>
+                        <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded border mt-1 ${gradeBadgeClass(card.grade)}`}>
+                          {gradeLabel(card.grade)}
+                        </span>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{card.setName}</p>
                       </div>
-                    )}
-                    <div className="mt-2 px-1">
-                      <p className="text-xs font-semibold truncate">{card.name}</p>
-                      <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded border mt-1 ${gradeBadgeClass(card.grade)}`}>
-                        {gradeLabel(card.grade)}
-                      </span>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{card.setName}</p>
-                    </div>
-                    {selectedCard?.id === card.id && (
-                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#CC0000] flex items-center justify-center shadow-lg">
-                        <Check className="w-3.5 h-3.5 text-white" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+                      {selectedCard?.id === card.id && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#CC0000] flex items-center justify-center shadow-lg">
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {hasMoreCards && (
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => loadCards(false)}
+                      disabled={isLoadingMoreCards}
+                      className="px-6 py-2.5 rounded-xl border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      {isLoadingMoreCards ? "불러오는 중…" : "더 보기"}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Selected preview + next */}

@@ -19,6 +19,7 @@ import { MyOrders } from "@/app/order/pages/MyOrders";
 import { OrderDetail } from "@/app/order/pages/OrderDetail";
 import { CardCatalog } from "@/app/card/pages/CardCatalog";
 import { CardDetail } from "@/app/card/pages/CardDetail";
+import { CardRegister } from "@/app/card/pages/CardRegister";
 import { AdminRoute } from "@/app/admin/components/AdminRoute";
 import { AdminLayout } from "@/app/admin/components/AdminLayout";
 import { AdminUsers } from "@/app/admin/pages/AdminUsers";
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
 
       // Card catalog
       { path: "cards",           Component: CardCatalog },
+      { path: "cards/register",  Component: CardRegister },
       { path: "cards/:cardId",   Component: CardDetail  },
 
       // Free board
