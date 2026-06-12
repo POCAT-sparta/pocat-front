@@ -140,6 +140,14 @@ export function Home() {
   const [recentCards,    setRecentCards]    = useState<CardResponse[]>([]);
   const [isCardsLoading, setIsCardsLoading] = useState(true);
 
+  // 1초마다 갱신되는 현재 시각. 페이지를 열어둔 사이 마감된 경매를 실시간으로
+  // 목록에서 제외하기 위해 사용한다.
+  const [nowTs, setNowTs] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const fetchAuctions = useCallback(async (reset: boolean) => {
     const targetPage = reset ? 0 : page + 1;
     if (reset) { setIsLoading(true); setLoadError(false); }
@@ -242,6 +250,15 @@ export function Home() {
     e.preventDefault();
     setKeyword(searchInput.trim());
   }
+
+  // 진행 중(ACTIVE)이면서 아직 마감 시각이 지나지 않은 경매만 노출한다.
+  // fetch 시점뿐 아니라 nowTs 틱마다 재평가되어, 보는 중에 종료된 경매도 사라진다.
+  const visibleAuctions = auctions.filter(
+    (a) => a.status === "ACTIVE" && new Date(a.endedAt).getTime() > nowTs
+  );
+  const visibleMyAuctions = myAuctions.filter(
+    (a) => a.status === "ACTIVE" && new Date(a.endedAt).getTime() > nowTs
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -438,14 +455,14 @@ export function Home() {
                   </div>
                 ))}
               </div>
-            ) : myAuctions.length === 0 ? (
+            ) : visibleMyAuctions.length === 0 ? (
               <div className="flex items-center gap-3 py-4 px-5 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900 text-sm text-blue-600 dark:text-blue-300">
                 <span className="text-2xl">🎮</span>
                 진행 중인 경매가 없습니다. 카드를 등록해 경매를 시작해보세요!
               </div>
             ) : (
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {myAuctions.map((auction) => (
+                {visibleMyAuctions.map((auction) => (
                   <AuctionMiniCard
                     key={auction.auctionId}
                     imageUrl={auction.cardImageUrl}
@@ -489,7 +506,7 @@ export function Home() {
                 다시 시도
               </button>
             </div>
-          ) : auctions.length === 0 ? (
+          ) : visibleAuctions.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-5xl mb-3">😴</p>
               <p className="text-muted-foreground">
@@ -499,7 +516,7 @@ export function Home() {
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {auctions.map((auction) => (
+                {visibleAuctions.map((auction) => (
                   <div
                     key={auction.auctionId}
                     onClick={() => navigate(`/auctions/${auction.auctionId}`)}
