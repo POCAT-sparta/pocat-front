@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { Gavel, Menu, User, X } from "lucide-react";
+import { Gavel, Library, Menu, User, X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { NotificationBell } from "@/app/notification/components/NotificationBell";
@@ -93,6 +93,14 @@ export function Header() {
                 <NotificationBell />
                 {!isAdmin && (
                   <Link
+                    to="/cards/register"
+                    className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium border border-[#CC0000]/40 text-[#FFCB05] hover:bg-[#CC0000]/20 transition-colors"
+                  >
+                    <Library className="w-3.5 h-3.5" /> 도감 등록
+                  </Link>
+                )}
+                {!isAdmin && (
+                  <Link
                     to="/auctions/new"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold bg-[#CC0000] hover:bg-[#aa0000] text-white transition-colors"
                   >
@@ -169,6 +177,15 @@ export function Header() {
             <div className="border-t border-white/10 pt-3 mt-3 space-y-1">
               {isAuthenticated ? (
                 <>
+                  {!isAdmin && (
+                    <Link
+                      to="/cards/register"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-[#CC0000]/40 text-[#FFCB05] hover:bg-[#CC0000]/20 transition-colors"
+                    >
+                      <Library className="w-4 h-4" /> 도감 등록
+                    </Link>
+                  )}
                   {!isAdmin && (
                     <Link
                       to="/auctions/new"
