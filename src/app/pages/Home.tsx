@@ -170,7 +170,8 @@ export function Home() {
       const activeContent = res.content.filter(
         (a) => a.status === "ACTIVE" && new Date(a.endedAt).getTime() > now
       );
-
+      console.log("res : " , res)
+      console.log("reset : " , reset)
       if (reset) {
         setAuctions(activeContent);
         setPage(0);
