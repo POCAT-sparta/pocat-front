@@ -90,12 +90,17 @@ export function AuctionDetail() {
     if (!auctionId) return;
     setIsLoading(true);
     try {
-      const [detail, bidPage] = await Promise.all([
-        getAuctionDetail(Number(auctionId)),
-        getAuctionBids(Number(auctionId)),
-      ]);
+      // 상세는 판매자 본인이면 PENDING(검수 대기)에서도 조회된다.
+      const detail = await getAuctionDetail(Number(auctionId));
       setAuction(detail);
-      setBids(bidPage.content);
+      // 입찰 목록은 ACTIVE 경매에서만 조회 가능하다(검수 대기/종료 등은 백엔드가 막음).
+      // 실패해도 상세 화면은 그대로 보여준다.
+      try {
+        const bidPage = await getAuctionBids(Number(auctionId));
+        setBids(bidPage.content);
+      } catch {
+        setBids([]);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "경매 정보를 불러오지 못했습니다.");
     } finally {
