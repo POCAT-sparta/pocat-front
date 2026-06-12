@@ -1,4 +1,4 @@
-import { apiClient } from "@/shared/lib/apiClient.ts";
+import { apiClient, getAccessToken } from "@/shared/lib/apiClient.ts";
 import type { ApiResponse, PageResponse } from "@/shared/types/api.ts";
 import type {
   CardResponse,
@@ -52,6 +52,33 @@ export async function getCardAuctions(
 export async function createCard(data: CreateCardRequest): Promise<CardResponse> {
   const res = await apiClient.post<ApiResponse<CardResponse>>("/api/v1/cards", data);
   return res.data;
+}
+
+export async function createCardWithImage(
+  data: CreateCardRequest,
+  image: File
+): Promise<CardResponse> {
+  const form = new FormData();
+  form.append("image", image);
+  form.append(
+    "request",
+    new Blob([JSON.stringify(data)], { type: "application/json" })
+  );
+
+  const token = getAccessToken();
+  const baseUrl = import.meta.env.VITE_API_URL ?? "";
+  const res = await fetch(`${baseUrl}/api/v1/cards/upload`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: form,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "요청 실패" }));
+    throw new Error(err.message ?? "요청 실패");
+  }
+  const json = (await res.json()) as ApiResponse<CardResponse>;
+  return json.data;
 }
 
 export async function getAveragePrice(cardId: number): Promise<CardAveragePriceResponse> {
