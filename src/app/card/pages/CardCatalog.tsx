@@ -4,6 +4,7 @@ import { Search, Gavel, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getCards } from "@/api/card/cardApi";
 import { getCachedCardAuctions, loadCardAuctions } from "@/app/card/lib/cardAuctionsCache";
+import { CardItem } from "@/app/card/components/CardItem";
 import { SeriesSetFilter, type SeriesSetSelection } from "@/app/card/components/SeriesSetFilter";
 import type { ActiveAuctionSummary, CardCategory, CardGrade, CardResponse } from "@/types/card.types";
 
@@ -60,29 +61,31 @@ function CardTile({ card }: { card: CardResponse }) {
 
   return (
     <div className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
-      <Link
-        to={`/cards/${card.id}`}
-        className="block bg-card border rounded-2xl overflow-hidden hover:border-[#FFCB05]/50 hover:shadow-lg transition-all"
-      >
-        <div className="aspect-[3/4] bg-muted relative">
+      <Link to={`/cards/${card.id}`} className="block group">
+        <div className="relative">
           {card.imageUrl ? (
-            <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" />
+            <CardItem
+              imageUrl={card.imageUrl}
+              name={card.name}
+              grade={card.grade}
+              className="w-full"
+            />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1a1a2e] to-[#16213e]">
+            <div className="aspect-[2/3] rounded-xl border bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center shadow-xl">
               <span className="text-white/20 text-3xl">🃏</span>
             </div>
           )}
           {/* 진행 중 경매 뱃지 */}
           {card.activeAuctionCount > 0 && (
-            <span className="absolute top-2 left-2 flex items-center gap-1 bg-[#CC0000] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">
+            <span className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-[#CC0000] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">
               <Gavel className="w-3 h-3" /> 경매 {card.activeAuctionCount}개 진행중
             </span>
           )}
-          <span className="absolute top-2 right-2 bg-black/60 text-[#FFCB05] text-[10px] font-bold px-1.5 py-0.5 rounded">
+          <span className="absolute top-2 right-2 z-10 bg-black/60 text-[#FFCB05] text-[10px] font-bold px-1.5 py-0.5 rounded">
             {gradeLabel(card.grade)}
           </span>
         </div>
-        <div className="p-3">
+        <div className="mt-2.5 px-1">
           <p className="font-semibold text-sm truncate">{card.name}</p>
           <p className="text-xs text-muted-foreground truncate">{card.setName}</p>
         </div>
