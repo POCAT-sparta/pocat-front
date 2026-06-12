@@ -7,7 +7,21 @@ import { getCards } from "@/api/card/cardApi";
 import { createAuction } from "@/api/auction/auctionApi";
 import { CardItem } from "@/app/card/components/CardItem";
 import { SeriesSetFilter, type SeriesSetSelection } from "@/app/card/components/SeriesSetFilter";
-import type { CardResponse, CardGrade } from "@/types/card.types";
+import type { CardResponse, CardGrade, CardCategory } from "@/types/card.types";
+
+const GRADE_OPTIONS = [
+  { label: "전체 등급", value: "" },
+  { label: "PSA 10", value: "PSA_10" },
+  { label: "PSA 9", value: "PSA_9" },
+  { label: "BGS 10", value: "BGS_10" },
+];
+
+const CATEGORY_OPTIONS = [
+  { label: "전체 카테고리", value: "" },
+  { label: "포켓몬", value: "POKEMON" },
+  { label: "트레이너", value: "TRAINERS" },
+  { label: "에너지", value: "ENERGY" },
+];
 
 function gradeLabel(grade: string) {
   if (grade === "PSA_10") return "⭐ PSA 10";
@@ -35,6 +49,8 @@ export function AuctionForm() {
   const [keyword, setKeyword] = useState("");
   const [seriesName, setSeriesName] = useState<string | undefined>(undefined);
   const [setName, setSetName] = useState<string | undefined>(undefined);
+  const [grade, setGrade] = useState("");
+  const [category, setCategory] = useState("");
   const [cardPage, setCardPage] = useState(0);
   const [cardTotalPages, setCardTotalPages] = useState(0);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
@@ -57,6 +73,8 @@ export function AuctionForm() {
         keyword: keyword || undefined,
         series: seriesName,
         setName: setName,
+        grade: grade ? (grade as CardGrade) : undefined,
+        category: category ? (category as CardCategory) : undefined,
         page: nextPage,
         size: CARD_PAGE_SIZE,
       });
@@ -78,7 +96,7 @@ export function AuctionForm() {
     }
     loadCards(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, keyword, seriesName, setName]);
+  }, [isAuthenticated, keyword, seriesName, setName, grade, category]);
 
   const hasMoreCards = cardPage + 1 < cardTotalPages;
 
@@ -196,7 +214,27 @@ export function AuctionForm() {
                   className="w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm bg-background focus:outline-none focus:border-[#CC0000] transition-colors"
                 />
               </form>
-              <SeriesSetFilter includeAll onChange={handleFilterChange} />
+              <div className="flex flex-wrap gap-2">
+                <SeriesSetFilter includeAll onChange={handleFilterChange} />
+                <select
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  className="border rounded-xl px-3 py-2 text-sm bg-background focus:outline-none focus:border-[#CC0000] transition-colors"
+                >
+                  {GRADE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="border rounded-xl px-3 py-2 text-sm bg-background focus:outline-none focus:border-[#CC0000] transition-colors"
+                >
+                  {CATEGORY_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {isLoadingCards ? (

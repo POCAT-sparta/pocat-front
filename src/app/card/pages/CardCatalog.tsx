@@ -4,6 +4,7 @@ import { Search, Gavel, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getCards } from "@/api/card/cardApi";
 import { getCachedCardAuctions, loadCardAuctions } from "@/app/card/lib/cardAuctionsCache";
+import { SeriesSetFilter, type SeriesSetSelection } from "@/app/card/components/SeriesSetFilter";
 import type { ActiveAuctionSummary, CardCategory, CardGrade, CardResponse } from "@/types/card.types";
 
 const GRADES: { label: string; value?: CardGrade }[] = [
@@ -127,6 +128,8 @@ export function CardCatalog() {
   const [searchInput, setSearchInput] = useState("");
   const [grade, setGrade] = useState<CardGrade | undefined>(undefined);
   const [category, setCategory] = useState<CardCategory | undefined>(undefined);
+  const [seriesName, setSeriesName] = useState<string | undefined>(undefined);
+  const [setName, setSetName] = useState<string | undefined>(undefined);
 
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -138,7 +141,7 @@ export function CardCatalog() {
     if (reset) setIsLoading(true);
     else setIsLoadingMore(true);
     try {
-      const res = await getCards({ keyword, grade, category, page: nextPage, size: PAGE_SIZE });
+      const res = await getCards({ keyword, grade, category, series: seriesName, setName, page: nextPage, size: PAGE_SIZE });
       setCards((prev) => (reset ? res.content : [...prev, ...res.content]));
       setPage(nextPage);
       setTotalPages(res.totalPages);
@@ -153,7 +156,12 @@ export function CardCatalog() {
   useEffect(() => {
     load(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keyword, grade, category]);
+  }, [keyword, grade, category, seriesName, setName]);
+
+  function handleFilterChange(sel: SeriesSetSelection) {
+    setSeriesName(sel.series?.name);
+    setSetName(sel.set?.name);
+  }
 
   const hasMore = page + 1 < totalPages;
 
@@ -224,6 +232,11 @@ export function CardCatalog() {
               {c.label}
             </button>
           ))}
+        </div>
+
+        {/* Series / Set 드롭다운 필터 */}
+        <div className="mb-6">
+          <SeriesSetFilter includeAll onChange={handleFilterChange} />
         </div>
 
         {isLoading ? (
