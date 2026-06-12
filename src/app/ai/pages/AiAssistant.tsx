@@ -4,6 +4,7 @@ import { Bot, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { streamAssistant } from "@/api/ai/aiAssistantApi";
+import { Markdown } from "@/shared/components/Markdown";
 import type { ChatMessage } from "@/types/aiAssistant.types";
 
 const MAX_MESSAGE_LENGTH = 2000;
@@ -117,13 +118,19 @@ export function AiAssistant() {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
+                  className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm break-words ${
                     msg.role === "user"
-                      ? "bg-[#CC0000] text-white rounded-br-sm"
+                      ? "bg-[#CC0000] text-white rounded-br-sm whitespace-pre-wrap"
                       : "bg-card border rounded-bl-sm"
                   }`}
                 >
-                  {msg.content || (
+                  {msg.content ? (
+                    msg.role === "assistant" ? (
+                      <Markdown>{msg.content}</Markdown>
+                    ) : (
+                      msg.content
+                    )
+                  ) : (
                     <span className="inline-flex items-center gap-1 text-muted-foreground">
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />

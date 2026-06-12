@@ -52,20 +52,28 @@ export async function streamAssistant(
 
       buffer += decoder.decode(value, { stream: true });
 
-      const blocks = buffer.split("\n\n");
+      // 이벤트는 빈 줄(\n\n 또는 \r\n\r\n)로 구분된다.
+      const blocks = buffer.split(/\r?\n\r?\n/);
       buffer = blocks.pop() ?? "";
 
       for (const block of blocks) {
         let event = "";
-        let data = "";
+        // 한 이벤트에 data: 줄이 여러 개 올 수 있으며 \n 으로 이어붙여야 한다.
+        // (백엔드가 줄바꿈 포함 청크를 보내면 Spring이 data: 줄을 분할해 전송함)
+        const dataLines: string[] = [];
 
-        for (const line of block.split("\n")) {
-          if (line.startsWith("event:")) {
-            event = line.slice("event:".length).trimStart();
-          } else if (line.startsWith("data:")) {
-            data = line.slice("data:".length).trimStart();
-          }
+        for (const line of block.split(/\r?\n/)) {
+          if (line.startsWith(":")) continue; // SSE 주석
+          const colon = line.indexOf(":");
+          const field = colon === -1 ? line : line.slice(0, colon);
+          let val = colon === -1 ? "" : line.slice(colon + 1);
+          // SSE 규격: 콜론 뒤 선두 공백은 "한 칸만" 제거 (마크다운 들여쓰기 보존)
+          if (val.startsWith(" ")) val = val.slice(1);
+          if (field === "event") event = val;
+          else if (field === "data") dataLines.push(val);
         }
+
+        const data = dataLines.join("\n");
 
         if (event === "message") {
           handlers.onMessage(data);
