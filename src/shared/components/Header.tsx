@@ -35,6 +35,7 @@ export function Header() {
       ? [
           { path: "/orders", label: "🧾 내 주문" },
           { path: "/chats", label: "📨 내 채팅" },
+          { path: "/ai/assistant", label: "🤖 AI 도우미" },
         ]
       : []),
     ...(isAdmin

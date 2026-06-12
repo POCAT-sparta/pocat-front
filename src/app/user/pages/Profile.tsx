@@ -1,9 +1,18 @@
-import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap } from "lucide-react";
-import { useState } from "react";
+import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/context/AuthContext.tsx";
 import { useIssueBillingKey } from "@/app/payment/hooks/useIssueBillingKey";
+import { getMyOrders } from "@/api/order/orderApi";
+import { getMyBids } from "@/api/bid/bidApi";
+import { getMySettlements } from "@/api/settlement/settlementApi";
+import { getMyRefunds } from "@/api/refund/refundApi";
+import { statusMeta } from "@/app/order/lib/orderStatus";
+import type { OrderListItem } from "@/types/order.types";
+import type { MyBidItem, BidStatus } from "@/types/bid.types";
+import type { MySettlementItem } from "@/types/settlement.types";
+import type { RefundResponse, RefundStatus } from "@/types/admin.types";
 
 const TRAINER_CLASSES = ["견습 트레이너", "정식 트레이너", "상급 트레이너", "엘리트 트레이너", "마스터 트레이너"];
 
@@ -18,6 +27,63 @@ export function Profile() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("info");
   const { issueBillingKey, isIssuing } = useIssueBillingKey();
+
+  const [orders, setOrders] = useState<OrderListItem[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
+
+  const [bids, setBids] = useState<MyBidItem[]>([]);
+  const [bidsLoading, setBidsLoading] = useState(false);
+  const [bidsLoaded, setBidsLoaded] = useState(false);
+
+  const [settlements, setSettlements] = useState<MySettlementItem[]>([]);
+  const [settlementsLoading, setSettlementsLoading] = useState(false);
+  const [settlementsLoaded, setSettlementsLoaded] = useState(false);
+
+  const [refunds, setRefunds] = useState<RefundResponse[]>([]);
+  const [refundsLoading, setRefundsLoading] = useState(false);
+  const [refundsLoaded, setRefundsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "buying" && !ordersLoaded) {
+      setOrdersLoading(true);
+      getMyOrders({ size: 10 })
+        .then((page) => setOrders(page.content))
+        .catch(() => toast.error("구매 내역을 불러오지 못했습니다."))
+        .finally(() => {
+          setOrdersLoading(false);
+          setOrdersLoaded(true);
+        });
+    } else if (activeTab === "bids" && !bidsLoaded) {
+      setBidsLoading(true);
+      getMyBids({ size: 10 })
+        .then((page) => setBids(page.content))
+        .catch(() => toast.error("입찰 내역을 불러오지 못했습니다."))
+        .finally(() => {
+          setBidsLoading(false);
+          setBidsLoaded(true);
+        });
+    } else if (activeTab === "settlements" && !settlementsLoaded) {
+      setSettlementsLoading(true);
+      getMySettlements({ size: 10 })
+        .then((page) => setSettlements(page.content))
+        .catch(() => toast.error("정산 내역을 불러오지 못했습니다."))
+        .finally(() => {
+          setSettlementsLoading(false);
+          setSettlementsLoaded(true);
+        });
+    } else if (activeTab === "refunds" && !refundsLoaded) {
+      setRefundsLoading(true);
+      getMyRefunds({ size: 10 })
+        .then((page) => setRefunds(page.content))
+        .catch(() => toast.error("환불 내역을 불러오지 못했습니다."))
+        .finally(() => {
+          setRefundsLoading(false);
+          setRefundsLoaded(true);
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   async function handleRegisterCard() {
     if (!user) return;
@@ -41,9 +107,11 @@ export function Profile() {
   }
 
   const tabs = [
-    { id: "info",     label: "내 정보",   icon: <User className="w-4 h-4" />         },
-    { id: "buying",   label: "구매 내역", icon: <ShoppingBag className="w-4 h-4" />  },
-    { id: "bids",     label: "입찰 내역", icon: <Gavel className="w-4 h-4" />        },
+    { id: "info",        label: "내 정보",   icon: <User className="w-4 h-4" />         },
+    { id: "buying",      label: "구매 내역", icon: <ShoppingBag className="w-4 h-4" />  },
+    { id: "bids",        label: "입찰 내역", icon: <Gavel className="w-4 h-4" />        },
+    { id: "settlements", label: "정산 내역", icon: <Wallet className="w-4 h-4" />       },
+    { id: "refunds",     label: "환불 내역", icon: <Undo2 className="w-4 h-4" />        },
   ];
 
   async function handleLogout() {
@@ -245,12 +313,172 @@ export function Profile() {
 
             {/* ── 구매 내역 ──────────────────────────────────────────────── */}
             {activeTab === "buying" && (
-              <EmptyTab emoji="🛍️" title="구매 내역이 없습니다" desc="낙찰된 경매가 생기면 여기에 표시됩니다." />
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Link to="/orders" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    전체 주문 내역 보기 →
+                  </Link>
+                </div>
+                {ordersLoading ? (
+                  <SkeletonList />
+                ) : orders.length === 0 ? (
+                  <EmptyTab emoji="🛍️" title="구매 내역이 없습니다" desc="낙찰된 경매가 생기면 여기에 표시됩니다." />
+                ) : (
+                  <ul className="space-y-3">
+                    {orders.map((order) => {
+                      const meta = statusMeta(order.orderStatus);
+                      return (
+                        <li key={order.orderUid}>
+                          <Link
+                            to={`/orders/${order.orderUid}`}
+                            state={{ auctionId: order.auctionId }}
+                            className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:bg-muted/60 transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{order.cardName}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{order.createdAt.slice(0, 10)}</p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${meta.className}`}>
+                                {meta.label}
+                              </span>
+                              <span className="text-sm font-extrabold text-[#CC0000]">
+                                {order.finalPrice.toLocaleString()}원
+                              </span>
+                            </div>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             )}
 
             {/* ── 입찰 내역 ──────────────────────────────────────────────── */}
             {activeTab === "bids" && (
-              <EmptyTab emoji="⚡" title="입찰 내역이 없습니다" desc="경매에 입찰하면 여기에 기록됩니다." />
+              <div className="space-y-4">
+                {bidsLoading ? (
+                  <SkeletonList />
+                ) : bids.length === 0 ? (
+                  <EmptyTab emoji="⚡" title="입찰 내역이 없습니다" desc="경매에 입찰하면 여기에 기록됩니다." />
+                ) : (
+                  <ul className="space-y-3">
+                    {bids.map((bid) => {
+                      const meta = bidStatusMeta(bid.status);
+                      return (
+                        <li key={bid.bidId}>
+                          <Link
+                            to={`/auctions/${bid.auctionId}`}
+                            className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:bg-muted/60 transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{bid.auctionTitle}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{bid.createdAt.slice(0, 10)}</p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <StatusBadge label={meta.label} variant={meta.variant} />
+                              <span className="text-sm font-extrabold text-[#CC0000]">
+                                {bid.bidPrice.toLocaleString()}원
+                              </span>
+                            </div>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* ── 정산 내역 ──────────────────────────────────────────────── */}
+            {activeTab === "settlements" && (
+              <div className="space-y-4">
+                {settlementsLoading ? (
+                  <SkeletonList />
+                ) : settlements.length === 0 ? (
+                  <EmptyTab emoji="💰" title="정산 내역이 없습니다" desc="판매한 카드가 정산되면 여기에 표시됩니다." />
+                ) : (
+                  <ul className="space-y-3">
+                    {settlements.map((settlement) => {
+                      const meta = settlementStatusMeta(settlement.status);
+                      const date = settlement.settledAt ?? settlement.createdAt;
+                      return (
+                        <li
+                          key={settlement.settlementUid}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {settlement.cardImageUrl && (
+                              <div className="w-10 h-14 rounded-lg overflow-hidden bg-muted shrink-0">
+                                <img
+                                  src={settlement.cardImageUrl}
+                                  alt={settlement.cardName}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{settlement.cardName}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {settlement.cardGrade} · {date.slice(0, 10)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <StatusBadge label={meta.label} variant={meta.variant} />
+                            <div className="text-right">
+                              <p className="text-sm font-extrabold text-[#CC0000]">
+                                {settlement.sellerAmount.toLocaleString()}원
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                ({settlement.platformFee.toLocaleString()}원 수수료)
+                              </p>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* ── 환불 내역 ──────────────────────────────────────────────── */}
+            {activeTab === "refunds" && (
+              <div className="space-y-4">
+                {refundsLoading ? (
+                  <SkeletonList />
+                ) : refunds.length === 0 ? (
+                  <EmptyTab emoji="↩️" title="환불 내역이 없습니다" desc="환불이 발생하면 여기에 표시됩니다." />
+                ) : (
+                  <ul className="space-y-3">
+                    {refunds.map((refund) => {
+                      const meta = refundStatusMeta(refund.status);
+                      return (
+                        <li
+                          key={refund.refundId}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{refund.reason}</p>
+                            {refund.status === "REJECTED" && refund.rejectReason && (
+                              <p className="text-[10px] text-red-500 mt-0.5 truncate">{refund.rejectReason}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-0.5">{refund.createdAt.slice(0, 10)}</p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <StatusBadge label={meta.label} variant={meta.variant} />
+                            <span className="text-sm font-extrabold text-[#CC0000]">
+                              {refund.amount.toLocaleString()}원
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -271,12 +499,13 @@ function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-function StatusBadge({ label, variant }: { label: string; variant: "ok" | "warn" | "danger" | "admin" }) {
+function StatusBadge({ label, variant }: { label: string; variant: "ok" | "warn" | "danger" | "admin" | "neutral" }) {
   const cls = {
-    ok:     "bg-green-500/10 text-green-500 border-green-500/20",
-    warn:   "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    danger: "bg-red-500/10 text-red-500 border-red-500/20",
-    admin:  "bg-[#CC0000]/10 text-[#CC0000] border-[#CC0000]/20",
+    ok:      "bg-green-500/10 text-green-500 border-green-500/20",
+    warn:    "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    danger:  "bg-red-500/10 text-red-500 border-red-500/20",
+    admin:   "bg-[#CC0000]/10 text-[#CC0000] border-[#CC0000]/20",
+    neutral: "bg-muted text-muted-foreground border-border",
   }[variant];
   return (
     <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${cls}`}>{label}</span>
@@ -291,4 +520,60 @@ function EmptyTab({ emoji, title, desc }: { emoji: string; title: string; desc: 
       <p className="text-sm text-muted-foreground">{desc}</p>
     </div>
   );
+}
+
+function SkeletonList() {
+  return (
+    <div className="space-y-3 animate-pulse">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+function bidStatusMeta(status: BidStatus): { label: string; variant: "ok" | "warn" | "danger" | "admin" | "neutral" } {
+  switch (status) {
+    case "LEADING":
+      return { label: "입찰 중", variant: "ok" };
+    case "OUTBID":
+      return { label: "역전당함", variant: "warn" };
+    case "WON":
+      return { label: "낙찰", variant: "admin" };
+    case "LOST":
+      return { label: "패찰", variant: "neutral" };
+    case "CANCELLED":
+    default:
+      return { label: "취소됨", variant: "neutral" };
+  }
+}
+
+function settlementStatusMeta(status: MySettlementItem["status"]): { label: string; variant: "ok" | "warn" | "danger" | "admin" | "neutral" } {
+  switch (status) {
+    case "PENDING":
+      return { label: "정산 대기", variant: "warn" };
+    case "COMPLETED":
+      return { label: "정산 완료", variant: "ok" };
+    case "REFUNDED":
+    default:
+      return { label: "환불됨", variant: "danger" };
+  }
+}
+
+function refundStatusMeta(status: RefundStatus): { label: string; variant: "ok" | "warn" | "danger" | "admin" | "neutral" } {
+  switch (status) {
+    case "REQUESTED":
+      return { label: "요청됨", variant: "warn" };
+    case "PROCESSING":
+      return { label: "처리 중", variant: "warn" };
+    case "COMPLETED":
+      return { label: "환불 완료", variant: "ok" };
+    case "REJECTED":
+      return { label: "거절됨", variant: "danger" };
+    case "FAILED_RETRYABLE":
+      return { label: "재시도 예정", variant: "warn" };
+    case "FAILED_FINAL":
+    default:
+      return { label: "처리 실패", variant: "danger" };
+  }
 }

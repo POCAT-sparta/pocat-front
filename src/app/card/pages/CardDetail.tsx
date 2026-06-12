@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeft, Gavel } from "lucide-react";
+import { ArrowLeft, Gavel, Sparkles, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { getCard, getCardAuctions, getAveragePrice } from "@/api/card/cardApi";
+import { getCardAnalysis, reanalyzeCard } from "@/api/ai/cardAnalysisApi";
 import type {
   ActiveAuctionSummary,
   CardAveragePriceResponse,
   CardResponse,
 } from "@/types/card.types";
+import type { CardAnalysisResponse } from "@/types/aiAnalysis.types";
 
 function gradeLabel(grade: string) {
   return grade.replace("_", " ");
@@ -41,6 +43,10 @@ export function CardDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [auctionsLoading, setAuctionsLoading] = useState(true);
 
+  const [analysis, setAnalysis] = useState<CardAnalysisResponse | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState(false);
+
   useEffect(() => {
     if (!cardId) return;
     const id = Number(cardId);
@@ -66,6 +72,32 @@ export function CardDetail() {
       .then(setAvg)
       .catch(() => setAvg(null));
   }, [cardId, navigate]);
+
+  async function handleAnalyze() {
+    if (!cardId) return;
+    setAnalysisLoading(true);
+    try {
+      const result = await getCardAnalysis(Number(cardId));
+      setAnalysis(result);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "AI 분석에 실패했습니다.");
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }
+
+  async function handleReanalyze() {
+    if (!cardId) return;
+    setReanalyzing(true);
+    try {
+      const result = await reanalyzeCard(Number(cardId));
+      setAnalysis(result);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "AI 재분석에 실패했습니다.");
+    } finally {
+      setReanalyzing(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -128,6 +160,122 @@ export function CardDetail() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* AI 분석 */}
+        <div className="mt-10">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-[#CC0000]" /> AI 분석
+          </h2>
+
+          {!analysis && !analysisLoading && (
+            <div className="bg-card border rounded-2xl p-8 text-center">
+              <p className="text-sm text-muted-foreground mb-4">
+                AI가 이 카드의 시세와 시장 동향을 분석해드립니다.
+              </p>
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#CC0000] text-white text-sm font-semibold hover:bg-[#CC0000]/90 transition-colors"
+              >
+                🤖 AI 분석 보기
+              </button>
+            </div>
+          )}
+
+          {analysisLoading && (
+            <div className="bg-card border rounded-2xl p-8 animate-pulse space-y-3">
+              <div className="h-4 bg-muted rounded w-1/2" />
+              <div className="h-4 bg-muted rounded w-full" />
+              <div className="h-4 bg-muted rounded w-3/4" />
+              <div className="h-20 bg-muted rounded" />
+            </div>
+          )}
+
+          {analysis && !analysisLoading && (
+            <div className="bg-card border rounded-2xl p-5 space-y-5">
+              {/* 요약 */}
+              <p className="text-sm leading-relaxed">{analysis.summary}</p>
+
+              {/* 핵심 지표 */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-muted/40 rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-1">가격 동향</p>
+                  <p className="text-sm font-semibold">{analysis.priceTrend}</p>
+                </div>
+                <div className="bg-muted/40 rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-1">수요 수준</p>
+                  <p className="text-sm font-semibold">{analysis.demandLevel}</p>
+                </div>
+                <div className="bg-muted/40 rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-1">적정 가격 추정</p>
+                  <p className="text-sm font-extrabold text-[#CC0000]">
+                    {analysis.fairValueEstimate.toLocaleString()}원
+                  </p>
+                </div>
+              </div>
+
+              {/* 긍정 포인트 */}
+              {analysis.highlights.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">긍정 포인트</p>
+                  <ul className="space-y-1.5">
+                    {analysis.highlights.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* 위험 요소 */}
+              {analysis.riskFactors.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">위험 요소</p>
+                  <ul className="space-y-1.5">
+                    {analysis.riskFactors.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* 키워드 */}
+              {analysis.keywords.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">키워드</p>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.keywords.map((kw, i) => (
+                      <span
+                        key={i}
+                        className="px-2.5 py-1 rounded-full bg-[#FFCB05]/15 text-[#a86d00] text-xs font-medium"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 다시 분석 */}
+              <div className="pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={handleReanalyze}
+                  disabled={reanalyzing}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-4 h-4 ${reanalyzing ? "animate-spin" : ""}`} />
+                  {reanalyzing ? "분석 중..." : "다시 분석"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 진행 중 경매 */}

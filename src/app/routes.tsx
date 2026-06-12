@@ -30,6 +30,7 @@ import { AdminOrders } from "@/app/admin/pages/AdminOrders";
 import { AdminSettlements } from "@/app/admin/pages/AdminSettlements";
 import { AdminRefunds } from "@/app/admin/pages/AdminRefunds";
 import { AdminAi } from "@/app/admin/pages/AdminAi";
+import { AiAssistant } from "@/app/ai/pages/AiAssistant";
 
 export const router = createBrowserRouter([
   {
@@ -66,6 +67,9 @@ export const router = createBrowserRouter([
 
       // Chat
       { path: "chats", Component: ChatList },
+
+      // AI Assistant
+      { path: "ai/assistant", Component: AiAssistant },
 
       // User
       { path: "profile", Component: Profile },
