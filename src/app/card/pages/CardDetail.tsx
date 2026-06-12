@@ -210,17 +210,19 @@ export function CardDetail() {
                 <div className="bg-muted/40 rounded-xl p-4">
                   <p className="text-xs text-muted-foreground mb-1">적정 가격 추정</p>
                   <p className="text-sm font-extrabold text-[#CC0000]">
-                    {analysis.fairValueEstimate.toLocaleString()}원
+                    {analysis.fairValueEstimate != null
+                      ? `${analysis.fairValueEstimate.toLocaleString()}원`
+                      : "정보 없음"}
                   </p>
                 </div>
               </div>
 
               {/* 긍정 포인트 */}
-              {analysis.highlights.length > 0 && (
+              {(analysis.highlights?.length ?? 0) > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-2">긍정 포인트</p>
                   <ul className="space-y-1.5">
-                    {analysis.highlights.map((item, i) => (
+                    {analysis.highlights?.map((item, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
                         <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
                         <span>{item}</span>
@@ -231,11 +233,11 @@ export function CardDetail() {
               )}
 
               {/* 위험 요소 */}
-              {analysis.riskFactors.length > 0 && (
+              {(analysis.riskFactors?.length ?? 0) > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-2">위험 요소</p>
                   <ul className="space-y-1.5">
-                    {analysis.riskFactors.map((item, i) => (
+                    {analysis.riskFactors?.map((item, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
                         <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                         <span>{item}</span>
@@ -246,11 +248,11 @@ export function CardDetail() {
               )}
 
               {/* 키워드 */}
-              {analysis.keywords.length > 0 && (
+              {(analysis.keywords?.length ?? 0) > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-2">키워드</p>
                   <div className="flex flex-wrap gap-2">
-                    {analysis.keywords.map((kw, i) => (
+                    {analysis.keywords?.map((kw, i) => (
                       <span
                         key={i}
                         className="px-2.5 py-1 rounded-full bg-[#FFCB05]/15 text-[#a86d00] text-xs font-medium"
