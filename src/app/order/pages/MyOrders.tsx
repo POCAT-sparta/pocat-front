@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { getMyOrders } from "@/api/order/orderApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
-import { isPayable, isPaymentExpired, statusMeta } from "@/app/order/lib/orderStatus";
+import { isPayable, isPaid, isPaymentExpired, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderListItem } from "@/types/order.types";
 
 type TabKey = "ALL" | "PENDING" | "UNPAID" | "COMPLETED";
@@ -57,8 +57,9 @@ export function MyOrders() {
         const page = await getMyOrders({ status: "PAYMENT_COMPLETED", size: 30 });
         list = page.content;
       } else {
+        // 전체 — 결제 완료되지 않은 즉시구매(BUYOUT)는 제외
         const page = await getMyOrders({ size: 30 });
-        list = page.content;
+        list = page.content.filter((o) => o.orderType !== "BUYOUT" || isPaid(o.orderStatus));
       }
       setOrders(list);
     } catch {

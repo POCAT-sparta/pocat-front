@@ -18,8 +18,22 @@ const PAYABLE: OrderStatus[] = ["PAYMENT_PENDING", "AUTO_PAYMENT_FAILED", "DIREC
 /** 낙찰 후 자동/직접결제 실패 상태 (직접결제 창이 부여되는 상태) */
 const PAYMENT_FAILED: OrderStatus[] = ["AUTO_PAYMENT_FAILED", "DIRECT_PAYMENT_FAILED"];
 
+/** 결제가 완료된 이후의 상태 (결제 완료 ~ 환불) */
+const PAID: OrderStatus[] = [
+  "PAYMENT_COMPLETED",
+  "SHIPPING",
+  "SHIPPING_COMPLETED",
+  "ORDER_COMPLETED",
+  "REFUNDED",
+];
+
 export function isPayable(status: OrderStatus): boolean {
   return PAYABLE.includes(status);
+}
+
+/** 결제가 완료된 주문인지 (결제 완료 이후 단계) */
+export function isPaid(status: OrderStatus): boolean {
+  return PAID.includes(status);
 }
 
 export function isPaymentFailed(status: OrderStatus): boolean {
