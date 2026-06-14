@@ -2,7 +2,7 @@ export type ChatStatus = "ACTIVE" | "COMPLETED" | "CANCELLED";
 
 export type ChatEventType = "MESSAGE" | "READ";
 
-/** POST /api/v1/chats 응답 */
+/** POST /ws/api/v1/chats 응답 */
 export interface ChatResponse {
   chatId: number;
   postId: number;
@@ -11,7 +11,7 @@ export interface ChatResponse {
   status: ChatStatus;
 }
 
-/** GET /api/v1/chats/me 항목 */
+/** GET /ws/api/v1/chats/me 항목 */
 export interface ChatRoomListItem {
   chatId: number;
   postTitle: string;
@@ -21,7 +21,7 @@ export interface ChatRoomListItem {
   updatedAt: string;
 }
 
-/** GET /api/v1/chats/{chatId}/messages 항목 (과거 이력) */
+/** GET /ws/api/v1/chats/{chatId}/messages 항목 (과거 이력) */
 export interface ChatMessage {
   id: number;
   senderId: number;
