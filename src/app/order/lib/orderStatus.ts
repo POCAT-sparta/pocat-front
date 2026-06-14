@@ -15,20 +15,21 @@ export const ORDER_STATUS_META: Record<OrderStatus, { label: string; className: 
 /** 직접 결제(재결제) 가능한 상태 — 낙찰 후 자동결제 실패분 / 결제 대기 */
 const PAYABLE: OrderStatus[] = ["PAYMENT_PENDING", "AUTO_PAYMENT_FAILED", "DIRECT_PAYMENT_FAILED"];
 
-/** 취소 가능한 상태 */
-const CANCELABLE: OrderStatus[] = [
-  "PAYMENT_PENDING",
-  "AUTO_PAYMENT_FAILED",
-  "DIRECT_PAYMENT_FAILED",
-  "PAYMENT_COMPLETED",
-];
+/** 낙찰 후 자동/직접결제 실패 상태 (직접결제 창이 부여되는 상태) */
+const PAYMENT_FAILED: OrderStatus[] = ["AUTO_PAYMENT_FAILED", "DIRECT_PAYMENT_FAILED"];
 
 export function isPayable(status: OrderStatus): boolean {
   return PAYABLE.includes(status);
 }
 
-export function isCancelable(status: OrderStatus): boolean {
-  return CANCELABLE.includes(status);
+export function isPaymentFailed(status: OrderStatus): boolean {
+  return PAYMENT_FAILED.includes(status);
+}
+
+/** 직접결제 창(paymentDeadline)이 지나 더 이상 결제할 수 없는지 */
+export function isPaymentExpired(paymentDeadline: string | null): boolean {
+  if (!paymentDeadline) return false;
+  return new Date(paymentDeadline).getTime() <= Date.now();
 }
 
 export function statusMeta(status: OrderStatus) {

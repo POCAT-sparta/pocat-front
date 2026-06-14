@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeft, CreditCard, XCircle } from "lucide-react";
+import { ArrowLeft, CreditCard } from "lucide-react";
 import { toast } from "sonner";
-import { cancelOrder, getOrder } from "@/api/order/orderApi";
+import { getOrder } from "@/api/order/orderApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
-import { isCancelable, isPayable, statusMeta } from "@/app/order/lib/orderStatus";
+import { isPayable, isPaymentExpired, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderDetail as OrderDetailType } from "@/types/order.types";
 
 function formatDate(iso: string) {
@@ -35,7 +35,6 @@ export function OrderDetail() {
 
   const [order, setOrder] = useState<OrderDetailType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCancelling, setIsCancelling] = useState(false);
 
   async function load() {
     if (!orderUid) return;
@@ -74,22 +73,6 @@ export function OrderDetail() {
     }
   }
 
-  async function handleCancel() {
-    if (!order) return;
-    const reason = window.prompt("취소 사유를 입력해주세요.");
-    if (!reason || !reason.trim()) return;
-    setIsCancelling(true);
-    try {
-      await cancelOrder(order.orderUid, reason.trim());
-      toast.success("주문이 취소되었습니다.");
-      await load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "취소에 실패했습니다.");
-    } finally {
-      setIsCancelling(false);
-    }
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -104,8 +87,7 @@ export function OrderDetail() {
   if (!order) return null;
 
   const meta = statusMeta(order.orderStatus);
-  const payable = isPayable(order.orderStatus);
-  const cancelable = isCancelable(order.orderStatus);
+  const payable = isPayable(order.orderStatus) && !isPaymentExpired(order.paymentDeadline);
 
   return (
     <div className="min-h-screen bg-background">
@@ -172,27 +154,16 @@ export function OrderDetail() {
         </div>
 
         {/* Actions */}
-        {(payable || cancelable) && (
+        {payable && (
           <div className="flex gap-2">
-            {payable && (
-              <button
-                onClick={handleDirectPay}
-                disabled={isPaying}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#CC0000] hover:bg-[#aa0000] text-white py-3.5 rounded-2xl font-bold transition-colors disabled:opacity-50"
-              >
-                <CreditCard className="w-5 h-5" />
-                {isPaying ? "결제 처리 중…" : `${order.finalPrice.toLocaleString()}원 직접 결제`}
-              </button>
-            )}
-            {cancelable && (
-              <button
-                onClick={handleCancel}
-                disabled={isCancelling}
-                className="flex items-center justify-center gap-1.5 border border-red-200 text-red-500 px-5 py-3.5 rounded-2xl text-sm hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors disabled:opacity-50"
-              >
-                <XCircle className="w-4 h-4" /> 주문 취소
-              </button>
-            )}
+            <button
+              onClick={handleDirectPay}
+              disabled={isPaying}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#CC0000] hover:bg-[#aa0000] text-white py-3.5 rounded-2xl font-bold transition-colors disabled:opacity-50"
+            >
+              <CreditCard className="w-5 h-5" />
+              {isPaying ? "결제 처리 중…" : `${order.finalPrice.toLocaleString()}원 직접 결제`}
+            </button>
           </div>
         )}
       </div>
