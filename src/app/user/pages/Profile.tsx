@@ -1,4 +1,4 @@
-import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2 } from "lucide-react";
+import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -215,12 +215,24 @@ export function Profile() {
             </div>
 
             {/* Quick nav */}
-            <div className="flex gap-2 mt-6">
+            <div className="flex flex-wrap gap-2 mt-6">
               <Link
                 to="/my-auctions"
                 className="flex items-center gap-1.5 bg-[#CC0000] hover:bg-[#aa0000] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
               >
                 <Zap className="w-3.5 h-3.5" /> 내 경매
+              </Link>
+              <Link
+                to="/orders"
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" /> 내 주문
+              </Link>
+              <Link
+                to="/chats"
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> 내 채팅
               </Link>
               <Link
                 to="/auctions/new"

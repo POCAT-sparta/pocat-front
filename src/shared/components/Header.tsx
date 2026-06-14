@@ -29,14 +29,9 @@ export function Header() {
     { path: "/cards",   label: "🃏 카드도감"   },
     { path: "/free",    label: "💬 자유게시판" },
     { path: "/trade",   label: "💰 거래게시판" },
-    // 개인 트레이더 기능은 관리자에게 숨김
-    ...(!isAdmin ? [{ path: "/my-auctions", label: "⚡ 내 경매" }] : []),
+    // 개인 트레이더 기능(내 경매·주문·채팅)은 마이페이지로 이동
     ...(isAuthenticated && !isAdmin
-      ? [
-          { path: "/orders", label: "🧾 내 주문" },
-          { path: "/chats", label: "📨 내 채팅" },
-          { path: "/ai/assistant", label: "🤖 AI 도우미" },
-        ]
+      ? [{ path: "/ai/assistant", label: "🤖 AI 도우미" }]
       : []),
     ...(isAdmin
       ? [{ path: "/admin", label: "🛠 관리자" }]
