@@ -19,7 +19,11 @@ import {
 import { subscribe } from "@/shared/lib/stompClient";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { notificationLink } from "@/app/notification/lib/notificationRouting";
-import type { NotificationEvent, NotificationResponse } from "@/types/notification.types";
+import type {
+  NotificationEvent,
+  NotificationListResponse,
+  NotificationResponse,
+} from "@/types/notification.types";
 
 interface NotificationContextValue {
   notifications: NotificationResponse[];
@@ -134,7 +138,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
     const unsubscribe = subscribe(`/sub/notifications/${user.id}`, (body) => {
+      // 이 목적지로는 두 가지 모양이 온다:
+      //  (1) 구독 직후 1회: 미읽음 목록 NotificationListResponse({ content, ... })
+      //  (2) 이후 새 알림마다: 단일 NotificationEvent
+      // 목록을 단일 이벤트로 잘못 처리하면 message/createdAt 이 undefined 가 되어
+      // 빈 토스트 + Invalid Date 짜투리 알림이 로그인마다 생긴다.
+      if (Array.isArray((body as Partial<NotificationListResponse>).content)) {
+        const list = (body as NotificationListResponse).content;
+        setNotifications((prev) => {
+          const seen = new Set(prev.map((n) => n.notificationId));
+          const fresh = list.filter((n) => !seen.has(n.notificationId));
+          return [...fresh, ...prev];
+        });
+        return; // 초기 목록 덤프 — 토스트 없음
+      }
+
       const event = body as NotificationEvent;
+      if (event.notificationId == null) return; // 알 수 없는 페이로드 방어
       const incoming: NotificationResponse = {
         notificationId: event.notificationId,
         type: event.type,
