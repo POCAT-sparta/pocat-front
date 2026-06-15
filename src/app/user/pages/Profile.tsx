@@ -1,10 +1,10 @@
-import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2, MessageSquare, Pencil, Check, X } from "lucide-react";
+import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2, MessageSquare, Pencil, Check, X, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/context/AuthContext.tsx";
 import { useIssueBillingKey } from "@/app/payment/hooks/useIssueBillingKey";
-import { updateMe } from "@/api/user/userApi";
+import { updateMe, deleteBillingKey } from "@/api/user/userApi";
 import { getMyOrders } from "@/api/order/orderApi";
 import { getMyBids } from "@/api/bid/bidApi";
 import { getMySettlements } from "@/api/settlement/settlementApi";
@@ -48,6 +48,7 @@ export function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ nickname: "", phone: "", address: "" });
+  const [isDeletingCard, setIsDeletingCard] = useState(false);
 
   useEffect(() => {
     if (activeTab === "buying" && !ordersLoaded) {
@@ -165,6 +166,21 @@ export function Profile() {
       toast.error(e instanceof Error ? e.message : "내 정보 수정에 실패했습니다.");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleDeleteCard() {
+    if (!user) return;
+    if (!window.confirm("등록된 카드를 삭제하시겠습니까?")) return;
+    setIsDeletingCard(true);
+    try {
+      await deleteBillingKey();
+      toast.success("카드가 삭제되었습니다.");
+      await refreshUser();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "카드 삭제에 실패했습니다.");
+    } finally {
+      setIsDeletingCard(false);
     }
   }
 
@@ -407,15 +423,25 @@ export function Profile() {
                   />
                 </div>
 
-                <div className="border-t pt-5">
+                <div className="border-t pt-5 flex flex-wrap gap-2">
                   <button
                     onClick={handleRegisterCard}
-                    disabled={isIssuing}
+                    disabled={isIssuing || isDeletingCard}
                     className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
                   >
                     <CreditCard className="w-3.5 h-3.5" />
                     {isIssuing ? "등록 중..." : user.hasBillingKey ? "카드 변경" : "카드 등록"}
                   </button>
+                  {user.hasBillingKey && (
+                    <button
+                      onClick={handleDeleteCard}
+                      disabled={isIssuing || isDeletingCard}
+                      className="flex items-center gap-2 text-xs text-red-500 hover:text-red-600 border border-red-500/30 hover:border-red-500/50 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {isDeletingCard ? "삭제 중..." : "카드 삭제"}
+                    </button>
+                  )}
                 </div>
 
                 <div className="border-t pt-5 space-y-3">
