@@ -24,7 +24,7 @@ const PAGE_SIZE = 20;
 
 const STATUS_FILTERS: { label: string; value?: AuctionStatus }[] = [
   { label: "전체" },
-  { label: "검수중", value: "INSPECTING" },
+  { label: "검수중", value: "PENDING" },
   { label: "진행중", value: "ACTIVE" },
   { label: "종료",   value: "ENDED" },
   { label: "취소",   value: "CANCELLED" },
