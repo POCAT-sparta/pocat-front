@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router";
-import { Gavel, Clock, Heart, Shield, Package, ChevronLeft, Trophy, Zap, Star, CreditCard } from "lucide-react";
+import { Gavel, Clock, Heart, Shield, Package, ChevronLeft, Trophy, Zap, Star } from "lucide-react";
 import { toast } from "sonner";
 import { getAuctionDetail } from "@/api/auction/auctionApi.ts";
 import { useAuth } from "../../auth/context/AuthContext.tsx";
@@ -8,7 +8,6 @@ import type { AuctionDetail as AuctionDetailType, BidItem } from "@/types/auctio
 import { buyout, getAuctionBids, placeBid, toggleLike } from "@/api/auction/bidApi.ts";
 import { CardItem } from "@/app/card/components/CardItem";
 import type { CardGrade } from "@/types/card.types";
-import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 function useCountdown(endedAt: string) {
@@ -72,8 +71,6 @@ export function AuctionDetail() {
   const [isBidding,   setIsBidding]   = useState(false);
   const [isBuyingOut, setIsBuyingOut] = useState(false);
   const [isLiking,    setIsLiking]    = useState(false);
-
-  const { payForAuction, isPaying } = usePortonePayment();
 
   function requireBillingKey(): boolean {
     if (!user?.hasBillingKey) {
@@ -149,20 +146,6 @@ export function AuctionDetail() {
     }
   }
 
-  async function handlePayForWin() {
-    if (!auction) return;
-    try {
-      await payForAuction(auction.auctionId, auction.title, {
-        fullName: user?.nickname,
-        email: user?.email,
-      });
-      toast.success("결제 완료! 카드가 곧 배송됩니다.");
-      await fetchData();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "결제에 실패했습니다.");
-    }
-  }
-
   async function handleLike() {
     if (!isAuthenticated) { toast.error("로그인이 필요합니다."); return; }
     if (!auction) return;
@@ -212,9 +195,7 @@ export function AuctionDetail() {
   }
 
   const isActive         = auction.status === "ACTIVE";
-  const isPaymentPending = auction.status === "PAYMENT_PENDING";
   const isOwner          = user?.id === auction.sellerId;
-  const isWinner         = user?.id === auction.highestBidderId;
   const minBid           = auction.highestPrice != null ? auction.highestPrice + 1 : auction.startingPrice;
   const statusCfg        = STATUS_CONFIG[auction.status] ?? { label: auction.status, color: "bg-white/10 text-white/50 border-white/20" };
 
@@ -310,29 +291,6 @@ export function AuctionDetail() {
               </div>
             )}
 
-            {/* 결제 대기 — 낙찰자 결제 */}
-            {isPaymentPending && isWinner && (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-blue-400 shrink-0" />
-                  <div>
-                    <p className="font-semibold text-sm text-blue-300">낙찰을 축하합니다!</p>
-                    <p className="text-xs text-blue-400/70 mt-0.5">
-                      낙찰 금액 {(auction.highestPrice ?? auction.startingPrice).toLocaleString()}원을 결제해주세요.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handlePayForWin}
-                  disabled={isPaying}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-xl transition-colors disabled:opacity-50 text-sm font-bold flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  {isPaying ? "결제 처리 중..." : `${(auction.highestPrice ?? auction.startingPrice).toLocaleString()}원 결제하기`}
-                </button>
-              </div>
-            )}
-
             {/* Bid form */}
             {isActive && !isOwner && (
               <div className="bg-card border rounded-2xl p-5 space-y-3">
@@ -364,11 +322,11 @@ export function AuctionDetail() {
                     {auction.buyoutPrice > 0 && (
                       <button
                         onClick={handleBuyout}
-                        disabled={isBuyingOut || isPaying}
+                        disabled={isBuyingOut}
                         className="w-full bg-[#FFCB05] hover:bg-[#e6b800] text-[#1a1a2e] py-2.5 rounded-xl transition-colors disabled:opacity-50 text-sm font-bold flex items-center justify-center gap-2"
                       >
                         <Zap className="w-4 h-4" />
-                        {isBuyingOut || isPaying ? "결제 처리 중..." : `즉시 구매 ${auction.buyoutPrice.toLocaleString()}원`}
+                        {isBuyingOut ? "결제 처리 중..." : `즉시 구매 ${auction.buyoutPrice.toLocaleString()}원`}
                       </button>
                     )}
                   </>
