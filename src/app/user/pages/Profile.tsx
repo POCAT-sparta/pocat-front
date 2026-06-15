@@ -1,4 +1,4 @@
-import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2, MessageSquare, Pencil, Check, X, Trash2 } from "lucide-react";
+import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2, MessageSquare, Pencil, Check, X, Trash2, FileText, Store, Eye, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -9,11 +9,14 @@ import { getMyOrders } from "@/api/order/orderApi";
 import { getMyBids } from "@/api/bid/bidApi";
 import { getMySettlements } from "@/api/settlement/settlementApi";
 import { getMyRefunds } from "@/api/refund/refundApi";
+import { getMyPosts } from "@/api/community/freeCommunityApi";
+import { getTradePosts } from "@/api/community/tradeCommunityApi";
 import { statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderListItem } from "@/types/order.types";
 import type { MyBidItem, BidStatus } from "@/types/bid.types";
 import type { MySettlementItem } from "@/types/settlement.types";
 import type { RefundResponse, RefundStatus } from "@/types/admin.types";
+import type { FreePostResponse, TradePostListItem } from "@/types/community.types";
 
 const TRAINER_CLASSES = ["견습 트레이너", "정식 트레이너", "상급 트레이너", "엘리트 트레이너", "마스터 트레이너"];
 
@@ -44,6 +47,14 @@ export function Profile() {
   const [refunds, setRefunds] = useState<RefundResponse[]>([]);
   const [refundsLoading, setRefundsLoading] = useState(false);
   const [refundsLoaded, setRefundsLoaded] = useState(false);
+
+  const [freePosts, setFreePosts] = useState<FreePostResponse[]>([]);
+  const [freePostsLoading, setFreePostsLoading] = useState(false);
+  const [freePostsLoaded, setFreePostsLoaded] = useState(false);
+
+  const [tradePosts, setTradePosts] = useState<TradePostListItem[]>([]);
+  const [tradePostsLoading, setTradePostsLoading] = useState(false);
+  const [tradePostsLoaded, setTradePostsLoaded] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -86,6 +97,25 @@ export function Profile() {
         .finally(() => {
           setRefundsLoading(false);
           setRefundsLoaded(true);
+        });
+    } else if (activeTab === "freeposts" && !freePostsLoaded) {
+      setFreePostsLoading(true);
+      getMyPosts({ size: 20 })
+        .then((page) => setFreePosts(page.content))
+        .catch(() => toast.error("내 자유 게시글을 불러오지 못했습니다."))
+        .finally(() => {
+          setFreePostsLoading(false);
+          setFreePostsLoaded(true);
+        });
+    } else if (activeTab === "tradeposts" && !tradePostsLoaded) {
+      setTradePostsLoading(true);
+      // 거래글은 '내 글' 전용 API가 없어 목록을 받아 닉네임으로 필터
+      getTradePosts({ size: 100 })
+        .then((page) => setTradePosts(page.content.filter((p) => p.authorNickname === user?.nickname)))
+        .catch(() => toast.error("내 거래 게시글을 불러오지 못했습니다."))
+        .finally(() => {
+          setTradePostsLoading(false);
+          setTradePostsLoaded(true);
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,6 +220,8 @@ export function Profile() {
     { id: "bids",        label: "입찰 내역", icon: <Gavel className="w-4 h-4" />        },
     { id: "settlements", label: "정산 내역", icon: <Wallet className="w-4 h-4" />       },
     { id: "refunds",     label: "환불 내역", icon: <Undo2 className="w-4 h-4" />        },
+    { id: "freeposts",   label: "내 자유글", icon: <FileText className="w-4 h-4" />     },
+    { id: "tradeposts",  label: "내 거래글", icon: <Store className="w-4 h-4" />        },
   ];
 
   async function handleLogout() {
@@ -634,6 +666,91 @@ export function Profile() {
                         </li>
                       );
                     })}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* ── 내 자유글 ──────────────────────────────────────────────── */}
+            {activeTab === "freeposts" && (
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Link to="/free/new" className="text-xs text-[#CC0000] hover:underline transition-colors">
+                    + 자유글 작성
+                  </Link>
+                </div>
+                {freePostsLoading ? (
+                  <SkeletonList />
+                ) : freePosts.length === 0 ? (
+                  <EmptyTab emoji="📝" title="작성한 자유글이 없습니다" desc="자유게시판에 글을 남겨보세요." />
+                ) : (
+                  <ul className="space-y-3">
+                    {freePosts.map((post) => (
+                      <li key={post.id}>
+                        <Link
+                          to={`/free/${post.id}`}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:bg-muted/60 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{post.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{post.createdAt.slice(0, 10)}</p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Eye className="w-3.5 h-3.5" /> {post.viewCount}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MessageCircle className="w-3.5 h-3.5" /> {post.commentCount}
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* ── 내 거래글 ──────────────────────────────────────────────── */}
+            {activeTab === "tradeposts" && (
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Link to="/trade/new" className="text-xs text-[#CC0000] hover:underline transition-colors">
+                    + 거래글 작성
+                  </Link>
+                </div>
+                {tradePostsLoading ? (
+                  <SkeletonList />
+                ) : tradePosts.length === 0 ? (
+                  <EmptyTab emoji="🤝" title="작성한 거래글이 없습니다" desc="거래게시판에 판매글을 올려보세요." />
+                ) : (
+                  <ul className="space-y-3">
+                    {tradePosts.map((post) => (
+                      <li key={post.id}>
+                        <Link
+                          to={`/trade/${post.id}`}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center gap-3 hover:bg-muted/60 transition-colors"
+                        >
+                          {post.thumbnail ? (
+                            <img src={post.thumbnail} alt={post.title} className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center text-lg shrink-0">🃏</div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{post.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                              {post.createdAt.slice(0, 10)}
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" /> {post.viewCount}
+                              </span>
+                            </p>
+                          </div>
+                          <span className="text-sm font-extrabold text-[#CC0000] shrink-0">
+                            {post.price.toLocaleString()}원
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
                   </ul>
                 )}
               </div>
