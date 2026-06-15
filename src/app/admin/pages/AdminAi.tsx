@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { reindexAi, esMigrate, migrateCardImages } from "@/api/admin";
+import { reindexAi, esMigrate, esMigrateCards, esMigrateAuctions, migrateCardImages } from "@/api/admin";
 import { AdminPageHeader } from "../components/AdminUI";
 
 /** 운영 액션 카드 (비동기/장시간 작업 단일 버튼) */
@@ -71,6 +71,32 @@ export function AdminAi() {
     }
   }
 
+  async function handleEsMigrateCards() {
+    if (!window.confirm("DB의 카드만 Elasticsearch로 일괄 인덱싱합니다.\n동기로 실행되어 완료까지 시간이 걸릴 수 있습니다. 진행할까요?")) return;
+    setRunning("es-migrate-cards");
+    try {
+      const res = await esMigrateCards();
+      toast.success(`카드 마이그레이션 완료 — ${res.cardsMigrated}건`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "카드 마이그레이션에 실패했습니다.");
+    } finally {
+      setRunning(null);
+    }
+  }
+
+  async function handleEsMigrateAuctions() {
+    if (!window.confirm("DB의 경매만 Elasticsearch로 일괄 인덱싱합니다.\n동기로 실행되어 완료까지 시간이 걸릴 수 있습니다. 진행할까요?")) return;
+    setRunning("es-migrate-auctions");
+    try {
+      const res = await esMigrateAuctions();
+      toast.success(`경매 마이그레이션 완료 — ${res.auctionsMigrated}건`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "경매 마이그레이션에 실패했습니다.");
+    } finally {
+      setRunning(null);
+    }
+  }
+
   async function handleMigrateImages() {
     if (!window.confirm("TCGdex 카드 이미지를 S3로 마이그레이션합니다.\n시간이 걸릴 수 있으며 백그라운드에서 실행됩니다. 진행할까요?")) return;
     setRunning("migrate-images");
@@ -102,6 +128,20 @@ export function AdminAi() {
           buttonLabel="마이그레이션 실행"
           running={running === "es-migrate"}
           onRun={handleEsMigrate}
+        />
+        <OpsCard
+          title="DB → ES 마이그레이션 (카드만)"
+          description="DB의 카드(ACTIVE)만 Elasticsearch에 일괄 인덱싱합니다. 카드 인덱스만 재구성이 필요할 때 실행하세요. 동기로 실행되며 완료 후 건수를 보여줍니다."
+          buttonLabel="카드 마이그레이션 실행"
+          running={running === "es-migrate-cards"}
+          onRun={handleEsMigrateCards}
+        />
+        <OpsCard
+          title="DB → ES 마이그레이션 (경매만)"
+          description="DB의 경매(ACTIVE/ENDED/유찰)만 Elasticsearch에 일괄 인덱싱합니다. 경매 인덱스만 재구성이 필요할 때 실행하세요. 동기로 실행되며 완료 후 건수를 보여줍니다."
+          buttonLabel="경매 마이그레이션 실행"
+          running={running === "es-migrate-auctions"}
+          onRun={handleEsMigrateAuctions}
         />
         <OpsCard
           title="카드 이미지 S3 마이그레이션"

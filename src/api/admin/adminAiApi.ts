@@ -18,3 +18,15 @@ export async function esMigrate(): Promise<EsMigrationResponse> {
   const res = await apiClient.post<ApiResponse<EsMigrationResponse>>(`/api/v1/admin/es-migrate`);
   return res.data;
 }
+
+/** POST /api/v1/admin/es-migrate/cards — DB 카드만 ES 로 일괄 인덱싱 (동기, ADMIN) */
+export async function esMigrateCards(): Promise<EsMigrationResponse> {
+  const res = await apiClient.post<ApiResponse<EsMigrationResponse>>(`/api/v1/admin/es-migrate/cards`);
+  return res.data;
+}
+
+/** POST /api/v1/admin/es-migrate/auctions — DB 경매만 ES 로 일괄 인덱싱 (동기, ADMIN) */
+export async function esMigrateAuctions(): Promise<EsMigrationResponse> {
+  const res = await apiClient.post<ApiResponse<EsMigrationResponse>>(`/api/v1/admin/es-migrate/auctions`);
+  return res.data;
+}
