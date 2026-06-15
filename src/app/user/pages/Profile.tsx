@@ -1,9 +1,10 @@
-import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2, MessageSquare } from "lucide-react";
+import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2, MessageSquare, Pencil, Check, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/context/AuthContext.tsx";
 import { useIssueBillingKey } from "@/app/payment/hooks/useIssueBillingKey";
+import { updateMe } from "@/api/user/userApi";
 import { getMyOrders } from "@/api/order/orderApi";
 import { getMyBids } from "@/api/bid/bidApi";
 import { getMySettlements } from "@/api/settlement/settlementApi";
@@ -43,6 +44,10 @@ export function Profile() {
   const [refunds, setRefunds] = useState<RefundResponse[]>([]);
   const [refundsLoading, setRefundsLoading] = useState(false);
   const [refundsLoaded, setRefundsLoaded] = useState(false);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [form, setForm] = useState({ nickname: "", phone: "", address: "" });
 
   useEffect(() => {
     if (activeTab === "buying" && !ordersLoaded) {
@@ -103,6 +108,63 @@ export function Profile() {
       toast.error(
         e instanceof Error ? e.message : isUpdate ? "카드 변경에 실패했습니다." : "카드 등록에 실패했습니다."
       );
+    }
+  }
+
+  function startEditing() {
+    if (!user) return;
+    setForm({
+      nickname: user.nickname,
+      phone: user.phone,
+      address: user.address ?? "",
+    });
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+  }
+
+  async function handleSaveInfo() {
+    if (!user) return;
+
+    const nickname = form.nickname.trim();
+    const phone = form.phone.trim();
+    const address = form.address.trim();
+
+    if (!nickname) {
+      toast.error("닉네임을 입력해주세요.");
+      return;
+    }
+    if (!phone) {
+      toast.error("휴대폰 번호를 입력해주세요.");
+      return;
+    }
+    if (!/^[0-9-]+$/.test(phone)) {
+      toast.error("휴대폰 번호 형식이 올바르지 않습니다.");
+      return;
+    }
+
+    const payload: { nickname?: string; phone?: string; address?: string } = {};
+    if (nickname !== user.nickname) payload.nickname = nickname;
+    if (phone !== user.phone) payload.phone = phone;
+    if (address !== (user.address ?? "")) payload.address = address;
+
+    if (Object.keys(payload).length === 0) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateMe(payload);
+      await refreshUser();
+      toast.success("내 정보가 수정되었습니다.");
+      setIsEditing(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "내 정보 수정에 실패했습니다.");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -272,11 +334,67 @@ export function Profile() {
             {/* ── 내 정보 ───────────────────────────────────────────────── */}
             {activeTab === "info" && (
               <div className="max-w-lg space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">기본 정보</h3>
+                  {!isEditing ? (
+                    <button
+                      onClick={startEditing}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-1.5 rounded-xl transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> 수정
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={cancelEditing}
+                        disabled={isSaving}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-1.5 rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-3.5 h-3.5" /> 취소
+                      </button>
+                      <button
+                        onClick={handleSaveInfo}
+                        disabled={isSaving}
+                        className="flex items-center gap-1.5 text-xs text-white bg-[#CC0000] hover:bg-[#aa0000] px-3 py-1.5 rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5" /> {isSaving ? "저장 중..." : "저장"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <InfoCard icon={<Mail className="w-4 h-4 text-[#FFCB05]" />}   label="이메일"   value={user.email} />
-                  <InfoCard icon={<User className="w-4 h-4 text-[#FFCB05]" />}   label="닉네임"   value={user.nickname} />
-                  <InfoCard icon={<Phone className="w-4 h-4 text-[#FFCB05]" />}  label="휴대폰"   value={user.phone} />
-                  <InfoCard icon={<MapPin className="w-4 h-4 text-[#FFCB05]" />} label="주소"     value={user.address ?? "미등록"} />
+                  {isEditing ? (
+                    <>
+                      <EditCard
+                        icon={<User className="w-4 h-4 text-[#FFCB05]" />}
+                        label="닉네임"
+                        value={form.nickname}
+                        onChange={(v) => setForm((f) => ({ ...f, nickname: v }))}
+                      />
+                      <EditCard
+                        icon={<Phone className="w-4 h-4 text-[#FFCB05]" />}
+                        label="휴대폰"
+                        value={form.phone}
+                        onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                        placeholder="010-0000-0000"
+                      />
+                      <EditCard
+                        icon={<MapPin className="w-4 h-4 text-[#FFCB05]" />}
+                        label="주소"
+                        value={form.address}
+                        onChange={(v) => setForm((f) => ({ ...f, address: v }))}
+                        placeholder="주소를 입력하세요"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <InfoCard icon={<User className="w-4 h-4 text-[#FFCB05]" />}   label="닉네임"   value={user.nickname} />
+                      <InfoCard icon={<Phone className="w-4 h-4 text-[#FFCB05]" />}  label="휴대폰"   value={user.phone} />
+                      <InfoCard icon={<MapPin className="w-4 h-4 text-[#FFCB05]" />} label="주소"     value={user.address ?? "미등록"} />
+                    </>
+                  )}
                   <InfoCard
                     icon={<CreditCard className="w-4 h-4 text-[#FFCB05]" />}
                     label="계좌"
@@ -506,6 +624,36 @@ function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string
       <div className="min-w-0">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
         <p className="text-sm font-medium truncate">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function EditCard({
+  icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="bg-muted/40 rounded-xl px-4 py-3 flex items-start gap-3 ring-1 ring-[#CC0000]/20">
+      <div className="mt-0.5 shrink-0">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <label className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5 block">{label}</label>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-transparent text-sm font-medium outline-none border-b border-border focus:border-[#CC0000] transition-colors pb-0.5"
+        />
       </div>
     </div>
   );
