@@ -4,6 +4,7 @@ import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
 import { AuctionDetail } from "@/app/auction/pages/AuctionDetail";
 import { AuctionForm } from "@/app/auction/pages/AuctionForm";
+import { AuctionEditForm } from "@/app/auction/pages/AuctionEditForm";
 import { MyAuctions } from "@/app/auction/pages/MyAuctions";
 import { Profile } from "@/app/user/pages/Profile";
 import { Login } from "@/app/auth/pages/Login";
@@ -41,9 +42,10 @@ export const router = createBrowserRouter([
       { index: true, Component: Home },
 
       // Auction
-      { path: "auctions/new",        Component: AuctionForm   },
-      { path: "auctions/:auctionId", Component: AuctionDetail },
-      { path: "my-auctions",         Component: MyAuctions    },
+      { path: "auctions/new",             Component: AuctionForm     },
+      { path: "auctions/:auctionId/edit", Component: AuctionEditForm },
+      { path: "auctions/:auctionId",      Component: AuctionDetail   },
+      { path: "my-auctions",              Component: MyAuctions      },
 
       // Card catalog
       { path: "cards",           Component: CardCatalog },

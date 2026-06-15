@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Gavel, Heart, Plus, Clock, Trophy, Package } from "lucide-react";
+import { Gavel, Heart, Plus, Clock, Trophy, Package, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { getMyAuctions } from "@/api/auction/auctionApi";
@@ -38,7 +38,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
 }
 
-function AuctionCard({ auction, onClick }: { auction: AuctionListItem; onClick: () => void }) {
+function AuctionCard({ auction, onClick, onEdit }: { auction: AuctionListItem; onClick: () => void; onEdit: () => void }) {
   const status = STATUS_CONFIG[auction.status] ?? { label: auction.status, color: "bg-white/10 text-white/50 border-white/20" };
   const viewable = isAuctionViewable(auction.status);
   return (
@@ -77,6 +77,12 @@ function AuctionCard({ auction, onClick }: { auction: AuctionListItem; onClick: 
             {formatDate(auction.endedAt)}
           </div>
         </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          className="mt-1 w-full flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-[#CC0000] border border-border hover:border-[#CC0000]/40 rounded-lg py-1.5 transition-colors"
+        >
+          <Pencil className="w-3 h-3" /> 수정
+        </button>
       </div>
     </div>
   );
@@ -106,8 +112,9 @@ export function MyAuctions() {
     }).finally(() => setIsLoading(false));
   }, [isAuthenticated, authLoading, navigate]);
 
-  const activeAuctions = myAuctions.filter(a => ["ACTIVE", "PENDING", "INSPECTING"].includes(a.status));
-  const endedAuctions  = myAuctions.filter(a => ["ENDED", "PAYMENT_PENDING", "CANCELLED", "REJECTED", "NO_BIDDER"].includes(a.status));
+  const activeAuctions  = myAuctions.filter(a => a.status === "ACTIVE");
+  const pendingAuctions = myAuctions.filter(a => ["PENDING", "INSPECTING"].includes(a.status));
+  const endedAuctions   = myAuctions.filter(a => ["ENDED", "PAYMENT_PENDING", "CANCELLED", "REJECTED", "NO_BIDDER"].includes(a.status));
 
   function openAuction(a: AuctionListItem) {
     if (!isAuctionViewable(a.status)) {
@@ -119,6 +126,10 @@ export function MyAuctions() {
       return;
     }
     navigate(`/auctions/${a.auctionId}`);
+  }
+
+  function editAuction(a: AuctionListItem) {
+    navigate(`/auctions/${a.auctionId}/edit`, { state: { auction: a } });
   }
 
   if (authLoading || isLoading) {
@@ -225,11 +236,27 @@ export function MyAuctions() {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {activeAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} />
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={() => editAuction(a)} />
                   ))}
                 </div>
               )}
             </div>
+
+            {/* Pending inspection */}
+            {pendingAuctions.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                  <h2 className="font-bold text-sm uppercase tracking-wide">검수 중인 경매</h2>
+                  <span className="text-xs text-muted-foreground">({pendingAuctions.length})</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {pendingAuctions.map(a => (
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={() => editAuction(a)} />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Ended */}
             {endedAuctions.length > 0 && (
@@ -241,7 +268,7 @@ export function MyAuctions() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {endedAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} />
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={() => editAuction(a)} />
                   ))}
                 </div>
               </div>
