@@ -21,3 +21,8 @@ export async function registerBillingKey(billingKey: string): Promise<void> {
 export async function updateBillingKey(billingKey: string): Promise<void> {
     await apiClient.put<ApiResponse<void>>("/api/v1/users/me/billing-key", { billingKey });
 }
+
+/** 빌링키 삭제 (등록된 카드 해지) */
+export async function deleteBillingKey(): Promise<void> {
+    await apiClient.delete<ApiResponse<void>>("/api/v1/users/me/billing-key");
+}
