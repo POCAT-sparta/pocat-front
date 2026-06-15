@@ -22,16 +22,14 @@ export async function getCards(params: CardSearchParams = {}): Promise<PageRespo
 
   const qs = query.toString();
   const res = await apiClient.get<ApiResponse<PageResponse<CardResponse>>>(
-    `/api/v1/cards${qs ? `?${qs}` : ""}`,
-    { skipAuth: true }
+    `/api/v1/cards${qs ? `?${qs}` : ""}`
   );
   return res.data;
 }
 
 export async function getCard(cardId: number): Promise<CardResponse> {
   const res = await apiClient.get<ApiResponse<CardResponse>>(
-    `/api/v1/cards/${cardId}`,
-    { skipAuth: true }
+    `/api/v1/cards/${cardId}`
   );
   return res.data;
 }
@@ -43,8 +41,7 @@ export async function getCardAuctions(
   size = 10
 ): Promise<ActiveAuctionSummary[]> {
   const res = await apiClient.get<ApiResponse<{ content: ActiveAuctionSummary[] }>>(
-    `/api/v1/cards/${cardId}/auctions?page=${page}&size=${size}`,
-    { skipAuth: true }
+    `/api/v1/cards/${cardId}/auctions?page=${page}&size=${size}`
   );
   return res.data.content;
 }
@@ -83,8 +80,7 @@ export async function createCardWithImage(
 
 export async function getAveragePrice(cardId: number): Promise<CardAveragePriceResponse> {
   const res = await apiClient.get<ApiResponse<CardAveragePriceResponse>>(
-    `/api/v1/cards/${cardId}/average-price`,
-    { skipAuth: true }
+    `/api/v1/cards/${cardId}/average-price`
   );
   return res.data;
 }
