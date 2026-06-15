@@ -28,7 +28,7 @@ function formatDate(iso: string) {
 export function MyOrders() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
-  const { payForAuction, isPaying } = usePortonePayment();
+  const { payForOrder, isPaying } = usePortonePayment();
 
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [tab, setTab] = useState<TabKey>("ALL");
@@ -82,7 +82,7 @@ export function MyOrders() {
   async function handleDirectPay(order: OrderListItem) {
     setPayingUid(order.orderUid);
     try {
-      await payForAuction(order.auctionId, order.cardName, {
+      await payForOrder(order.orderId, order.cardName, {
         fullName: user?.nickname,
         email: user?.email,
       });

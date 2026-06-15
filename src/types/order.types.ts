@@ -31,6 +31,7 @@ export interface OrderListItem {
 
 /** GET /api/v1/orders/{orderUid} */
 export interface OrderDetail {
+  orderId: number;
   orderUid: string;
   auctionId: number;
   buyer: { nickname: string };

@@ -31,7 +31,7 @@ export function OrderDetail() {
   const { orderUid } = useParams<{ orderUid: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { payForAuction, isPaying } = usePortonePayment();
+  const { payForOrder, isPaying } = usePortonePayment();
 
   const [order, setOrder] = useState<OrderDetailType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +62,7 @@ export function OrderDetail() {
   async function handleDirectPay() {
     if (!order) return;
     try {
-      await payForAuction(order.auctionId, order.card.name, {
+      await payForOrder(order.orderId, order.card.name, {
         fullName: user?.nickname,
         email: user?.email,
       });

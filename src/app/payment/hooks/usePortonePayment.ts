@@ -44,17 +44,17 @@ export function usePortonePayment() {
 
   /**
    * 직접 결제(PG 결제창): 낙찰 후 자동결제 실패분 또는 결제 대기 주문을 직접 결제할 때 사용.
-   * 백엔드에서 auctionId 로 paymentUid 를 생성하고 PortOne 결제창을 연 뒤 확정한다.
+   * 백엔드에서 orderId 로 paymentUid 를 생성하고 PortOne 결제창을 연 뒤 확정한다.
    */
-  async function payForAuction(auctionId: number, orderName: string, buyer?: Buyer) {
+  async function payForOrder(orderId: number, orderName: string, buyer?: Buyer) {
     setIsPaying(true);
     try {
-      const { paymentUid, amount } = await createPayment({ auctionId });
+      const { paymentUid, amount } = await createPayment({ orderId });
       await executePortonePayment({ paymentUid, amount, orderName, buyer });
     } finally {
       setIsPaying(false);
     }
   }
 
-  return { payForAuction, isPaying };
+  return { payForOrder, isPaying };
 }
