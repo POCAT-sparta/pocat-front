@@ -11,13 +11,15 @@ interface Props {
   /** true면 "전체"(null) 옵션을 노출하고 기본값으로 둔다. 기본 true */
   includeAll?: boolean;
   onChange: (sel: SeriesSetSelection) => void;
+  initialSeriesName?: string;
+  initialSetName?: string;
 }
 
 function label(item: { name: string; nameKo: string | null }): string {
   return item.nameKo && item.nameKo.trim() ? item.nameKo : item.name;
 }
 
-export function SeriesSetFilter({ includeAll = true, onChange }: Props) {
+export function SeriesSetFilter({ includeAll = true, onChange, initialSeriesName, initialSetName }: Props) {
   const [seriesList, setSeriesList] = useState<SeriesResponse[]>([]);
   const [setsList, setSetsList] = useState<PokemonSetResponse[]>([]);
   const [seriesId, setSeriesId] = useState<number | null>(null);
@@ -31,7 +33,17 @@ export function SeriesSetFilter({ includeAll = true, onChange }: Props) {
         if (cancelled) return;
         setSeriesList(series);
         setSetsList(sets);
-        if (!includeAll && series.length > 0) {
+
+        if (initialSeriesName) {
+          const matched = series.find((s) => s.name === initialSeriesName) ?? null;
+          if (matched) {
+            setSeriesId(matched.id);
+            if (initialSetName) {
+              const matchedSet = sets.find((s) => s.name === initialSetName) ?? null;
+              if (matchedSet) setSetId(matchedSet.id);
+            }
+          }
+        } else if (!includeAll && series.length > 0) {
           const firstSeries = series[0];
           const firstSet =
             sets.find((s) => s.seriesId === firstSeries.id) ?? null;

@@ -129,12 +129,13 @@ export function CardDetail() {
       {/* Hero */}
       <section className="bg-gradient-to-r from-[#1a1a2e] to-[#16213e] text-white py-8 border-b border-white/10">
         <div className="container mx-auto px-4 max-w-4xl">
-          <Link
-            to="/cards"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
             className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm mb-3 transition-colors w-fit"
           >
             <ArrowLeft className="w-4 h-4" /> 카드 도감
-          </Link>
+          </button>
           <h1 className="text-xl font-bold">{card.name}</h1>
           <p className="text-sm text-white/50">{card.setName} · {card.series}</p>
         </div>
