@@ -11,6 +11,14 @@ export async function reindexAi(): Promise<void> {
 }
 
 /**
+ * POST /api/v1/admin/es-alias-setup — ES 인덱스 별칭 초기 설정 (ADMIN)
+ * 최초 구동 시 인덱스/별칭을 생성한다.
+ */
+export async function esAliasSetup(): Promise<void> {
+  await apiClient.post<ApiResponse<void>>(`/api/v1/admin/es-alias-setup`);
+}
+
+/**
  * POST /api/v1/admin/es-migrate — DB 의 카드/경매를 Elasticsearch 로 일괄 인덱싱 (ADMIN)
  * 동기로 실행되며 마이그레이션 건수를 반환한다.
  */

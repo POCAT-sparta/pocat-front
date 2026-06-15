@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { reindexAi, esMigrate, esMigrateCards, esMigrateAuctions, migrateCardImages } from "@/api/admin";
+import { reindexAi, esAliasSetup, esMigrate, esMigrateCards, esMigrateAuctions, migrateCardImages } from "@/api/admin";
 import { AdminPageHeader } from "../components/AdminUI";
 
 /** 운영 액션 카드 (비동기/장시간 작업 단일 버튼) */
@@ -53,6 +53,19 @@ export function AdminAi() {
       toast.success("재색인 요청이 접수되었습니다. 백그라운드에서 처리됩니다.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "재색인 요청에 실패했습니다.");
+    } finally {
+      setRunning(null);
+    }
+  }
+
+  async function handleEsAliasSetup() {
+    if (!window.confirm("ES 인덱스 별칭을 초기 설정합니다.\n최초 구동 시 인덱스/별칭을 생성하는 1회성 작업입니다. 진행할까요?")) return;
+    setRunning("es-alias-setup");
+    try {
+      await esAliasSetup();
+      toast.success("ES 인덱스 별칭 초기 설정이 완료되었습니다.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "ES 인덱스 별칭 초기 설정에 실패했습니다.");
     } finally {
       setRunning(null);
     }
@@ -121,6 +134,13 @@ export function AdminAi() {
           buttonLabel="전체 재색인 실행"
           running={running === "reindex"}
           onRun={handleReindex}
+        />
+        <OpsCard
+          title="ES 인덱스 별칭 초기 설정"
+          description="Elasticsearch 인덱스와 별칭(alias)을 생성하는 1회성 초기 설정입니다. 마이그레이션 전 최초 구동 시 가장 먼저 실행하세요. 이미 설정된 경우 다시 실행할 필요는 없습니다."
+          buttonLabel="별칭 초기 설정 실행"
+          running={running === "es-alias-setup"}
+          onRun={handleEsAliasSetup}
         />
         <OpsCard
           title="DB → ES 마이그레이션"
