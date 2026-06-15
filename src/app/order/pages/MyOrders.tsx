@@ -7,6 +7,7 @@ import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
 import { isPayable, isPaid, isPaymentExpired, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderListItem } from "@/types/order.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 type TabKey = "ALL" | "PENDING" | "UNPAID" | "COMPLETED";
 
@@ -18,7 +19,7 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", {
+  return formatKST(iso, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

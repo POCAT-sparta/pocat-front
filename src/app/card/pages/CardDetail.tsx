@@ -10,13 +10,14 @@ import type {
   CardResponse,
 } from "@/types/card.types";
 import type { CardAnalysisResponse } from "@/types/aiAnalysis.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 function gradeLabel(grade: string) {
   return grade.replace("_", " ");
 }
 
 function formatEnds(iso: string) {
-  return new Date(iso).toLocaleString("ko-KR", {
+  return formatKST(iso, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -25,7 +26,7 @@ function formatEnds(iso: string) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", {
+  return formatKST(iso, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

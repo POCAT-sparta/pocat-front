@@ -8,6 +8,7 @@ import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
 import { isPayable, isPaid, isPaymentExpired, isRefundable, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderListItem } from "@/types/order.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 /**
  * 직접 결제(빌링 자동결제 X) 테스트 전용 페이지. 경로: /orders/test
@@ -19,7 +20,7 @@ import type { OrderListItem } from "@/types/order.types";
 
 function formatDateTime(iso: string | null) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("ko-KR", {
+  return formatKST(iso, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

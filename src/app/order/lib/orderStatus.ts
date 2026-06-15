@@ -1,4 +1,5 @@
 import type { OrderStatus } from "@/types/order.types";
+import { serverTime } from "@/shared/lib/datetime";
 
 export const ORDER_STATUS_META: Record<OrderStatus, { label: string; className: string }> = {
   PAYMENT_PENDING:       { label: "결제 대기",   className: "bg-blue-500/15 text-blue-400" },
@@ -51,7 +52,7 @@ export function isPaymentFailed(status: OrderStatus): boolean {
 /** 직접결제 창(paymentDeadline)이 지나 더 이상 결제할 수 없는지 */
 export function isPaymentExpired(paymentDeadline: string | null): boolean {
   if (!paymentDeadline) return false;
-  return new Date(paymentDeadline).getTime() <= Date.now();
+  return serverTime(paymentDeadline) <= Date.now();
 }
 
 export function statusMeta(status: OrderStatus) {

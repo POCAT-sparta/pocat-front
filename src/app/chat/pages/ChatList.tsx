@@ -6,6 +6,7 @@ import { getMyChats } from "@/api/chat/chatApi.ts";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { ChatRoomModal } from "@/app/chat/components/ChatRoomModal";
 import type { ChatRoomListItem, ChatStatus } from "@/types/chat.types";
+import { serverTime, formatKST } from "@/shared/lib/datetime";
 
 const STATUS_LABEL: Record<ChatStatus, { label: string; className: string }> = {
   ACTIVE: { label: "거래중", className: "bg-green-500/15 text-green-400" },
@@ -14,7 +15,7 @@ const STATUS_LABEL: Record<ChatStatus, { label: string; className: string }> = {
 };
 
 function formatRelative(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
+  const diff = Date.now() - serverTime(iso);
   const min = Math.floor(diff / 60000);
   if (min < 1) return "방금 전";
   if (min < 60) return `${min}분 전`;
@@ -22,7 +23,7 @@ function formatRelative(iso: string) {
   if (hr < 24) return `${hr}시간 전`;
   const day = Math.floor(hr / 24);
   if (day < 7) return `${day}일 전`;
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
+  return formatKST(iso, { month: "2-digit", day: "2-digit" });
 }
 
 export function ChatList() {
@@ -49,6 +50,11 @@ export function ChatList() {
     setActive(null);
     // 닫을 때 마지막 메시지/읽음 상태 갱신
     getMyChats().then(setChats).catch(() => {});
+  }
+
+  function handleLeave(chatId: number) {
+    setChats((prev) => prev.filter((c) => c.chatId !== chatId));
+    setActive(null);
   }
 
   return (
@@ -126,6 +132,7 @@ export function ChatList() {
           chatId={active.chatId}
           opponentNickname={active.opponentNickname}
           onClose={handleClose}
+          onLeave={handleLeave}
         />
       )}
     </>

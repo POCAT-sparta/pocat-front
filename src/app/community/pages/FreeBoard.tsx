@@ -4,6 +4,7 @@ import { MessageSquare, Eye, PenLine, Search, ChevronRight, TrendingUp } from "l
 import { getPosts } from "@/api/community/freeCommunityApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import type { FreePostResponse } from "@/types/community.types";
+import { formatKST, KST_TIME_ZONE } from "@/shared/lib/datetime";
 
 const SORT_OPTIONS = [
   { label: "최신순",     value: "createdAt,desc"    },
@@ -14,10 +15,11 @@ const SORT_OPTIONS = [
 const PAGE_SIZE = 20;
 
 function formatDate(iso: string) {
-  const d = new Date(iso);
-  if (d.toDateString() === new Date().toDateString())
-    return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
-  return d.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
+  const dayOpts: Intl.DateTimeFormatOptions = { year: "numeric", month: "2-digit", day: "2-digit" };
+  const today = new Date().toLocaleDateString("ko-KR", { timeZone: KST_TIME_ZONE, ...dayOpts });
+  if (formatKST(iso, dayOpts) === today)
+    return formatKST(iso, { hour: "2-digit", minute: "2-digit" });
+  return formatKST(iso, { month: "2-digit", day: "2-digit" });
 }
 
 export function FreeBoard() {

@@ -6,9 +6,10 @@ import { createComment, deleteComment, getCommentsByPost, updateComment } from "
 import { useAuth } from "@/app/auth/context/AuthContext";
 import type { CommentTreeResponse, FreePostResponse } from "@/types/community.types";
 import { toast } from "sonner";
+import { formatKST } from "@/shared/lib/datetime";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return formatKST(iso, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 function CommentItem({

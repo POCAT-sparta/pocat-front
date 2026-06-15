@@ -7,6 +7,7 @@ import { getMyAuctions } from "@/api/auction/auctionApi";
 import { getMyLikes } from "@/api/auction/likeApi";
 import type { AuctionListItem } from "@/types/auction.types";
 import type { LikeResponse } from "@/types/like.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 function gradeBadgeClass(grade: string) {
   if (grade === "PSA_10") return "bg-amber-400/20 text-amber-300 border-amber-400/40";
@@ -35,7 +36,7 @@ function isAuctionViewable(status: string) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
+  return formatKST(iso, { month: "2-digit", day: "2-digit" });
 }
 
 function AuctionCard({ auction, onClick, onEdit }: { auction: AuctionListItem; onClick: () => void; onEdit: () => void }) {

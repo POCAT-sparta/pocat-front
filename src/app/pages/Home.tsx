@@ -9,6 +9,7 @@ import { useAuth } from "@/app/auth/context/AuthContext";
 import type { AuctionListItem } from "@/types/auction.types";
 import type { LikeResponse } from "@/types/like.types";
 import type { CardGrade, CardResponse } from "@/types/card.types";
+import { serverTime } from "@/shared/lib/datetime";
 
 const PIKACHU_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png";
 const EEVEE_URL   = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png";
@@ -46,7 +47,7 @@ function CountdownTimer({ endedAt }: { endedAt: string }) {
   const [timeLeft, setTimeLeft] = useState("");
   useEffect(() => {
     const update = () => {
-      const d = new Date(endedAt).getTime() - Date.now();
+      const d = serverTime(endedAt) - Date.now();
       if (d < 0) { setTimeLeft("종료"); return; }
       const h = Math.floor(d / 3600000);
       const m = Math.floor((d % 3600000) / 60000);
@@ -168,7 +169,7 @@ export function Home() {
       // 진행 중(ACTIVE)이면서 마감 시각이 지나지 않은 경매만 노출한다.
       const now = Date.now();
       const activeContent = res.content.filter(
-        (a) => a.status === "ACTIVE" && new Date(a.endedAt).getTime() > now
+        (a) => a.status === "ACTIVE" && serverTime(a.endedAt) > now
       );
       console.log("res : " , res)
       console.log("reset : " , reset)
@@ -255,10 +256,10 @@ export function Home() {
   // 진행 중(ACTIVE)이면서 아직 마감 시각이 지나지 않은 경매만 노출한다.
   // fetch 시점뿐 아니라 nowTs 틱마다 재평가되어, 보는 중에 종료된 경매도 사라진다.
   const visibleAuctions = auctions.filter(
-    (a) => a.status === "ACTIVE" && new Date(a.endedAt).getTime() > nowTs
+    (a) => a.status === "ACTIVE" && serverTime(a.endedAt) > nowTs
   );
   const visibleMyAuctions = myAuctions.filter(
-    (a) => a.status === "ACTIVE" && new Date(a.endedAt).getTime() > nowTs
+    (a) => a.status === "ACTIVE" && serverTime(a.endedAt) > nowTs
   );
 
   return (

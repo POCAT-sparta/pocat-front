@@ -6,9 +6,10 @@ import { getMySettlements } from "@/api/settlement/settlementApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import type { MySettlementItem } from "@/types/settlement.types";
 import type { SettlementStatus } from "@/types/admin.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("ko-KR", {
+  return formatKST(iso, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

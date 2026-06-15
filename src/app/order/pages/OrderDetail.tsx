@@ -8,9 +8,10 @@ import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
 import { isPayable, isPaymentExpired, isRefundable, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderDetail as OrderDetailType } from "@/types/order.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("ko-KR", {
+  return formatKST(iso, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

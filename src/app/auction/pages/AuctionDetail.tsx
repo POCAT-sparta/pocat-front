@@ -8,13 +8,14 @@ import type { AuctionDetail as AuctionDetailType, BidItem } from "@/types/auctio
 import { buyout, getAuctionBids, placeBid, toggleLike } from "@/api/auction/bidApi.ts";
 import { CardItem } from "@/app/card/components/CardItem";
 import type { CardGrade } from "@/types/card.types";
+import { serverTime, formatKST } from "@/shared/lib/datetime";
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 function useCountdown(endedAt: string) {
   const [timeLeft, setTimeLeft] = useState("");
   useEffect(() => {
     const update = () => {
-      const distance = new Date(endedAt).getTime() - Date.now();
+      const distance = serverTime(endedAt) - Date.now();
       if (distance < 0) { setTimeLeft("종료"); return; }
       const d = Math.floor(distance / (1000 * 60 * 60 * 24));
       const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -408,7 +409,7 @@ export function AuctionDetail() {
                             {bid.bidPrice.toLocaleString()}원
                           </div>
                           <div className="text-[10px] text-muted-foreground mt-0.5">
-                            {new Date(bid.createdAt).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            {formatKST(bid.createdAt, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
                           </div>
                         </div>
                       </div>
@@ -431,11 +432,11 @@ export function AuctionDetail() {
               )}
               <InfoRow
                 label="시작일"
-                value={new Date(auction.startedAt).toLocaleDateString("ko-KR")}
+                value={formatKST(auction.startedAt, { year: "numeric", month: "2-digit", day: "2-digit" })}
               />
               <InfoRow
                 label="종료일"
-                value={new Date(auction.endedAt).toLocaleDateString("ko-KR")}
+                value={formatKST(auction.endedAt, { year: "numeric", month: "2-digit", day: "2-digit" })}
               />
               <InfoRow label="상태" value={statusCfg.label} />
             </div>

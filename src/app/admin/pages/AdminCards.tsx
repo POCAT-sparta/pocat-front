@@ -11,6 +11,7 @@ import {
   RowActionButton,
 } from "../components/AdminUI";
 import { AdminModal, adminInputClass, AdminPrimaryButton } from "../components/AdminModal";
+import { formatKST } from "@/shared/lib/datetime";
 
 const PAGE_SIZE = 20;
 
@@ -30,7 +31,7 @@ function statusBadge(status: CardStatus) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
+  return formatKST(iso, { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
 export function AdminCards() {

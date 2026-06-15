@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { getAdminUsers } from "@/api/admin";
 import type { AdminUserResponse } from "@/types/admin.types";
+import { formatKST } from "@/shared/lib/datetime";
 import {
   AdminPageHeader,
   AdminPanel,
@@ -20,7 +21,7 @@ const BLOCK_FILTERS: { label: string; value?: boolean }[] = [
 ];
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
+  return formatKST(iso, { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
 export function AdminUsers() {

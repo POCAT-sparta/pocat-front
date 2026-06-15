@@ -7,9 +7,10 @@ import { ChatRoomModal } from "@/app/chat/components/ChatRoomModal";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import type { TradePostDetail } from "@/types/community.types";
 import { toast } from "sonner";
+import { formatKST } from "@/shared/lib/datetime";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return formatKST(iso, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 export function TradeBoardDetail() {
@@ -186,6 +187,7 @@ export function TradeBoardDetail() {
           chatId={chatId}
           opponentNickname={post.authorNickname}
           onClose={() => setChatId(null)}
+          onLeave={() => setChatId(null)}
         />
       )}
     </>

@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { getAdminSettlements, completeSettlement } from "@/api/admin";
 import type { AdminSettlementResponse, SettlementStatus } from "@/types/admin.types";
+import { formatKST } from "@/shared/lib/datetime";
 import {
   AdminPageHeader,
   AdminPanel,
@@ -31,7 +32,7 @@ function statusBadge(status: SettlementStatus) {
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return formatKST(iso, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 export function AdminSettlements() {

@@ -1,29 +1,48 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, X } from "lucide-react";
+import { Send, X, LogOut } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { useChatRoom } from "@/app/chat/hooks/useChatRoom";
+import { leaveChat } from "@/api/chat/chatApi.ts";
+import { formatKST } from "@/shared/lib/datetime";
 
 interface ChatRoomModalProps {
   chatId: number;
   opponentNickname: string;
   onClose: () => void;
+  onLeave: (chatId: number) => void;
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("ko-KR", {
+  return formatKST(iso, {
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
-export function ChatRoomModal({ chatId, opponentNickname, onClose }: ChatRoomModalProps) {
+export function ChatRoomModal({ chatId, opponentNickname, onClose, onLeave }: ChatRoomModalProps) {
   const { user } = useAuth();
   const { messages, connected, loading, opponentRead, sendMessage } = useChatRoom(
     chatId,
     user?.id
   );
   const [input, setInput] = useState("");
+  const [isLeaving, setIsLeaving] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  async function handleLeave() {
+    if (isLeaving) return;
+    if (!window.confirm("채팅방을 나가시겠습니까? 대화 내용이 사라집니다.")) return;
+    setIsLeaving(true);
+    try {
+      await leaveChat(chatId);
+      toast.success("채팅방을 나갔습니다.");
+      onLeave(chatId);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "채팅방 나가기에 실패했습니다.");
+      setIsLeaving(false);
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,6 +85,15 @@ export function ChatRoomModal({ chatId, opponentNickname, onClose }: ChatRoomMod
               </span>
             </p>
           </div>
+          <button
+            onClick={handleLeave}
+            disabled={isLeaving}
+            title="채팅방 나가기"
+            className="flex items-center gap-1 px-2 py-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-white/50 hover:text-red-400 text-xs disabled:opacity-50"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            {isLeaving ? "나가는 중…" : "나가기"}
+          </button>
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
