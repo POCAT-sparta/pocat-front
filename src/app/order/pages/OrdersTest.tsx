@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { FlaskConical, CreditCard, RefreshCw } from "lucide-react";
+import { FlaskConical, CreditCard, RefreshCw, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { getMyOrders } from "@/api/order/orderApi";
+import { createRefund } from "@/api/refund/refundApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
-import { isPayable, isPaid, isPaymentExpired, statusMeta } from "@/app/order/lib/orderStatus";
+import { isPayable, isPaid, isPaymentExpired, isRefundable, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderListItem } from "@/types/order.types";
 
 /**
@@ -50,6 +51,7 @@ export function OrdersTest() {
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [payingUid, setPayingUid] = useState<string | null>(null);
+  const [refundingUid, setRefundingUid] = useState<string | null>(null);
 
   async function load() {
     setIsLoading(true);
@@ -87,6 +89,25 @@ export function OrdersTest() {
       toast.error(e instanceof Error ? e.message : "결제에 실패했습니다.");
     } finally {
       setPayingUid(null);
+    }
+  }
+
+  async function handleRefund(order: OrderListItem) {
+    const reason = window.prompt("환불 사유를 입력해주세요.", "테스트 환불");
+    if (reason === null) return; // 취소
+    if (!reason.trim()) {
+      toast.error("환불 사유를 입력해주세요.");
+      return;
+    }
+    setRefundingUid(order.orderUid);
+    try {
+      await createRefund({ orderId: order.orderId, reason: reason.trim() });
+      toast.success("환불 요청 접수됨!");
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "환불 요청에 실패했습니다.");
+    } finally {
+      setRefundingUid(null);
     }
   }
 
@@ -141,8 +162,10 @@ export function OrdersTest() {
               const paid = isPaid(order.orderStatus);
               // 테스트 페이지: 마감(deadline) 경과 여부와 무관하게 결제 가능한 상태면 버튼 노출
               const canPay = isPayable(order.orderStatus);
+              const canRefund = isRefundable(order.orderStatus);
               const expired = isPaymentExpired(order.paymentDeadline);
               const busy = isPaying && payingUid === order.orderUid;
+              const refundBusy = refundingUid === order.orderUid;
               return (
                 <li
                   key={order.orderUid}
@@ -191,6 +214,16 @@ export function OrdersTest() {
                     >
                       <CreditCard className="w-4 h-4" />
                       {busy ? "결제 중…" : "직접 결제"}
+                    </button>
+                  )}
+                  {canRefund && (
+                    <button
+                      onClick={() => handleRefund(order)}
+                      disabled={refundBusy}
+                      className="shrink-0 self-start flex items-center gap-1.5 border border-[#CC0000]/40 text-[#CC0000] hover:bg-[#CC0000]/5 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      {refundBusy ? "요청 중…" : "환불 요청"}
                     </button>
                   )}
                 </li>

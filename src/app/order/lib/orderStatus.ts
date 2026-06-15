@@ -15,6 +15,9 @@ export const ORDER_STATUS_META: Record<OrderStatus, { label: string; className: 
 /** 직접 결제(재결제) 가능한 상태 — 낙찰 후 자동결제 실패분 / 결제 대기 */
 const PAYABLE: OrderStatus[] = ["PAYMENT_PENDING", "AUTO_PAYMENT_FAILED", "DIRECT_PAYMENT_FAILED"];
 
+/** 환불 요청 가능한 상태 — 결제 완료 / 거래 완료 (백엔드 REFUNDABLE_STATUSES 와 일치) */
+const REFUNDABLE: OrderStatus[] = ["PAYMENT_COMPLETED", "ORDER_COMPLETED"];
+
 /** 낙찰 후 자동/직접결제 실패 상태 (직접결제 창이 부여되는 상태) */
 const PAYMENT_FAILED: OrderStatus[] = ["AUTO_PAYMENT_FAILED", "DIRECT_PAYMENT_FAILED"];
 
@@ -29,6 +32,11 @@ const PAID: OrderStatus[] = [
 
 export function isPayable(status: OrderStatus): boolean {
   return PAYABLE.includes(status);
+}
+
+/** 환불 요청 가능한 주문인지 (결제 완료 / 거래 완료) */
+export function isRefundable(status: OrderStatus): boolean {
+  return REFUNDABLE.includes(status);
 }
 
 /** 결제가 완료된 주문인지 (결제 완료 이후 단계) */

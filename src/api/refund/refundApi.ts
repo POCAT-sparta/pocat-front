@@ -8,6 +8,22 @@ export interface MyRefundParams {
   size?: number;
 }
 
+export interface CreateRefundRequest {
+  orderId: number;
+  reason: string;
+}
+
+/** 환불 요청 (결제 완료/거래 완료 주문만 가능, 금액은 서버에서 전액 자동 산정) */
+export async function createRefund(
+  data: CreateRefundRequest
+): Promise<RefundResponse> {
+  const res = await apiClient.post<ApiResponse<RefundResponse>>(
+    "/api/v1/refunds",
+    data
+  );
+  return res.data;
+}
+
 /** 내 환불 목록 */
 export async function getMyRefunds(
   params: MyRefundParams = {}
