@@ -19,6 +19,8 @@ import { ChatList } from "@/app/chat/pages/ChatList";
 import { MyOrders } from "@/app/order/pages/MyOrders";
 import { OrderDetail } from "@/app/order/pages/OrderDetail";
 import { OrdersTest } from "@/app/order/pages/OrdersTest";
+import { RefundDetail } from "@/app/order/pages/RefundDetail";
+import { SettlementDetail } from "@/app/order/pages/SettlementDetail";
 import { CardCatalog } from "@/app/card/pages/CardCatalog";
 import { CardDetail } from "@/app/card/pages/CardDetail";
 import { CardRegister } from "@/app/card/pages/CardRegister";
@@ -68,6 +70,10 @@ export const router = createBrowserRouter([
       { path: "orders",            Component: MyOrders   },
       { path: "orders/test",       Component: OrdersTest  }, // 직접 결제 테스트 전용
       { path: "orders/:orderUid",  Component: OrderDetail },
+
+      // Refund / Settlement
+      { path: "refunds/:refundId",            Component: RefundDetail     },
+      { path: "settlements/:settlementUid",   Component: SettlementDetail },
 
       // Chat
       { path: "chats", Component: ChatList },

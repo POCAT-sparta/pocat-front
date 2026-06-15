@@ -562,7 +562,8 @@ export function Profile() {
                       return (
                         <li
                           key={settlement.settlementUid}
-                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+                          onClick={() => navigate(`/settlements/${settlement.settlementUid}`, { state: { settlement } })}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/60 transition-colors"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             {settlement.cardImageUrl && (
@@ -614,7 +615,8 @@ export function Profile() {
                       return (
                         <li
                           key={refund.refundId}
-                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+                          onClick={() => navigate(`/refunds/${refund.refundId}`, { state: { refund } })}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/60 transition-colors"
                         >
                           <div className="min-w-0">
                             <p className="font-medium truncate">{refund.reason}</p>
