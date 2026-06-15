@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Gavel, Heart, Plus, Clock, Trophy, Package, Pencil } from "lucide-react";
+import { Gavel, Heart, Plus, Clock, Trophy, Package, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/auth/context/AuthContext";
-import { getMyAuctions } from "@/api/auction/auctionApi";
+import { getMyAuctions, cancelAuction } from "@/api/auction/auctionApi";
 import { getMyLikes } from "@/api/auction/likeApi";
 import type { AuctionListItem } from "@/types/auction.types";
 import type { LikeResponse } from "@/types/like.types";
@@ -39,7 +39,7 @@ function formatDate(iso: string) {
   return formatKST(iso, { month: "2-digit", day: "2-digit" });
 }
 
-function AuctionCard({ auction, onClick, onEdit }: { auction: AuctionListItem; onClick: () => void; onEdit: () => void }) {
+function AuctionCard({ auction, onClick, onEdit, onCancel, cancelling }: { auction: AuctionListItem; onClick: () => void; onEdit: () => void; onCancel?: () => void; cancelling?: boolean }) {
   const status = STATUS_CONFIG[auction.status] ?? { label: auction.status, color: "bg-white/10 text-white/50 border-white/20" };
   const viewable = isAuctionViewable(auction.status);
   return (
@@ -84,6 +84,15 @@ function AuctionCard({ auction, onClick, onEdit }: { auction: AuctionListItem; o
         >
           <Pencil className="w-3 h-3" /> 수정
         </button>
+        {onCancel && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onCancel(); }}
+            disabled={cancelling}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <X className="w-3 h-3" /> {cancelling ? "취소 중..." : "취소"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -98,6 +107,7 @@ export function MyAuctions() {
   const [myAuctions,    setMyAuctions]    = useState<AuctionListItem[]>([]);
   const [myLikes,       setMyLikes]       = useState<LikeResponse[]>([]);
   const [isLoading,     setIsLoading]     = useState(true);
+  const [cancellingId,  setCancellingId]  = useState<number | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -131,6 +141,23 @@ export function MyAuctions() {
 
   function editAuction(a: AuctionListItem) {
     navigate(`/auctions/${a.auctionId}/edit`, { state: { auction: a } });
+  }
+
+  // 판매자 경매 취소 — 백엔드 정책상 검수 전(PENDING) 상태에서만 가능
+  async function handleCancel(a: AuctionListItem) {
+    if (!window.confirm(`"${a.title}" 경매를 취소할까요? 되돌릴 수 없습니다.`)) return;
+    setCancellingId(a.auctionId);
+    try {
+      const res = await cancelAuction(a.auctionId);
+      toast.success("경매를 취소했습니다.");
+      setMyAuctions((prev) =>
+        prev.map((x) => (x.auctionId === a.auctionId ? { ...x, status: res.status } : x))
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "경매 취소에 실패했습니다.");
+    } finally {
+      setCancellingId(null);
+    }
   }
 
   if (authLoading || isLoading) {
@@ -253,7 +280,14 @@ export function MyAuctions() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {pendingAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={() => editAuction(a)} />
+                    <AuctionCard
+                      key={a.auctionId}
+                      auction={a}
+                      onClick={() => openAuction(a)}
+                      onEdit={() => editAuction(a)}
+                      onCancel={a.status === "PENDING" ? () => handleCancel(a) : undefined}
+                      cancelling={cancellingId === a.auctionId}
+                    />
                   ))}
                 </div>
               </div>
