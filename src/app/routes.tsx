@@ -17,6 +17,7 @@ import { TradeBoardForm } from "@/app/community/pages/TradeBoardForm";
 import { ChatList } from "@/app/chat/pages/ChatList";
 import { MyOrders } from "@/app/order/pages/MyOrders";
 import { OrderDetail } from "@/app/order/pages/OrderDetail";
+import { OrdersTest } from "@/app/order/pages/OrdersTest";
 import { CardCatalog } from "@/app/card/pages/CardCatalog";
 import { CardDetail } from "@/app/card/pages/CardDetail";
 import { CardRegister } from "@/app/card/pages/CardRegister";
@@ -63,6 +64,7 @@ export const router = createBrowserRouter([
 
       // Order
       { path: "orders",            Component: MyOrders   },
+      { path: "orders/test",       Component: OrdersTest  }, // 직접 결제 테스트 전용
       { path: "orders/:orderUid",  Component: OrderDetail },
 
       // Chat
