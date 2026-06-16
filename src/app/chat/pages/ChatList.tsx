@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getMyChats } from "@/api/chat/chatApi.ts";
@@ -28,6 +28,9 @@ function formatRelative(iso: string) {
 export function ChatList() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // 마운트 시 알림에서 전달된 chatId를 한 번만 읽어둠
+  const initialChatIdRef = useRef(searchParams.get("chatId"));
 
   const [chats, setChats] = useState<ChatRoomListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,10 +43,19 @@ export function ChatList() {
       return;
     }
     getMyChats()
-      .then(setChats)
+      .then((list) => {
+        setChats(list);
+        const chatIdParam = initialChatIdRef.current;
+        if (chatIdParam) {
+          const target = list.find((c) => c.chatId === Number(chatIdParam));
+          if (target) setActive(target);
+          setSearchParams({}, { replace: true });
+          initialChatIdRef.current = null;
+        }
+      })
       .catch(() => toast.error("채팅 목록을 불러오지 못했습니다."))
       .finally(() => setIsLoading(false));
-  }, [authLoading, isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, navigate, setSearchParams]);
 
   function handleClose() {
     setActive(null);

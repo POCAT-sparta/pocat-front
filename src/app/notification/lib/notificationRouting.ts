@@ -23,7 +23,17 @@ export function notificationLink(type: string, relatedData: unknown): string | n
       : typeof rawAuctionId === "string" && rawAuctionId
         ? Number(rawAuctionId)
         : null;
+  const rawChatId = data.chatId;
+  const chatId =
+    typeof rawChatId === "number"
+      ? rawChatId
+      : typeof rawChatId === "string" && rawChatId
+        ? Number(rawChatId)
+        : null;
 
+  if (type === "CHAT_ROOM_CREATED" || type === "CHAT_MESSAGE_RECEIVED") {
+    if (chatId) return `/chats?chatId=${chatId}`;
+  }
   if (orderUid) return `/orders/${orderUid}`;
   if (auctionId) return `/auctions/${auctionId}`;
   return null;
@@ -65,6 +75,10 @@ export function notificationMeta(type: string): { icon: string; accent: string }
       return { icon: "🛡️", accent: "text-green-400" };
     case "INSPECTION_FAILED":
       return { icon: "🚫", accent: "text-red-400" };
+    case "CHAT_ROOM_CREATED":
+      return { icon: "💬", accent: "text-blue-400" };
+    case "CHAT_MESSAGE_RECEIVED":
+      return { icon: "✉️", accent: "text-[#FFCB05]" };
     default:
       return { icon: "🔔", accent: "text-white/70" };
   }
