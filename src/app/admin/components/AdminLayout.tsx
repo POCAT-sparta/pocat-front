@@ -9,7 +9,7 @@ const NAV = [
   { to: "/admin/orders",      label: "주문 관리",   icon: Receipt   },
   { to: "/admin/settlements", label: "정산 관리",   icon: Wallet    },
   { to: "/admin/refunds",     label: "환불 관리",   icon: Undo2     },
-  { to: "/admin/ai",          label: "AI 운영",     icon: Sparkles  },
+  { to: "/admin/ai",          label: "운영",        icon: Sparkles  },
 ];
 
 export function AdminLayout() {

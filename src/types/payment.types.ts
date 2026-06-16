@@ -1,5 +1,5 @@
 export interface CreatePaymentRequest {
-  auctionId: number;
+  orderId: number;
 }
 
 export interface CreatePaymentResponse {

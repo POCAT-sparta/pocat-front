@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Gavel, Heart, Plus, Clock, Trophy, Package } from "lucide-react";
+import { Gavel, Heart, Plus, Clock, Trophy, Package, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/auth/context/AuthContext";
-import { getMyAuctions } from "@/api/auction/auctionApi";
+import { getMyAuctions, cancelAuction } from "@/api/auction/auctionApi";
 import { getMyLikes } from "@/api/auction/likeApi";
 import type { AuctionListItem } from "@/types/auction.types";
 import type { LikeResponse } from "@/types/like.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 function gradeBadgeClass(grade: string) {
   if (grade === "PSA_10") return "bg-amber-400/20 text-amber-300 border-amber-400/40";
@@ -35,10 +36,10 @@ function isAuctionViewable(status: string) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
+  return formatKST(iso, { month: "2-digit", day: "2-digit" });
 }
 
-function AuctionCard({ auction, onClick }: { auction: AuctionListItem; onClick: () => void }) {
+function AuctionCard({ auction, onClick, onEdit, onCancel, cancelling }: { auction: AuctionListItem; onClick: () => void; onEdit: () => void; onCancel?: () => void; cancelling?: boolean }) {
   const status = STATUS_CONFIG[auction.status] ?? { label: auction.status, color: "bg-white/10 text-white/50 border-white/20" };
   const viewable = isAuctionViewable(auction.status);
   return (
@@ -77,6 +78,21 @@ function AuctionCard({ auction, onClick }: { auction: AuctionListItem; onClick: 
             {formatDate(auction.endedAt)}
           </div>
         </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          className="mt-1 w-full flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-[#CC0000] border border-border hover:border-[#CC0000]/40 rounded-lg py-1.5 transition-colors"
+        >
+          <Pencil className="w-3 h-3" /> 수정
+        </button>
+        {onCancel && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onCancel(); }}
+            disabled={cancelling}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/50 rounded-lg py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <X className="w-3 h-3" /> {cancelling ? "취소 중..." : "취소"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -91,6 +107,7 @@ export function MyAuctions() {
   const [myAuctions,    setMyAuctions]    = useState<AuctionListItem[]>([]);
   const [myLikes,       setMyLikes]       = useState<LikeResponse[]>([]);
   const [isLoading,     setIsLoading]     = useState(true);
+  const [cancellingId,  setCancellingId]  = useState<number | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -106,8 +123,9 @@ export function MyAuctions() {
     }).finally(() => setIsLoading(false));
   }, [isAuthenticated, authLoading, navigate]);
 
-  const activeAuctions = myAuctions.filter(a => ["ACTIVE", "PENDING", "INSPECTING"].includes(a.status));
-  const endedAuctions  = myAuctions.filter(a => ["ENDED", "PAYMENT_PENDING", "CANCELLED", "REJECTED", "NO_BIDDER"].includes(a.status));
+  const activeAuctions  = myAuctions.filter(a => a.status === "ACTIVE");
+  const pendingAuctions = myAuctions.filter(a => ["PENDING", "INSPECTING"].includes(a.status));
+  const endedAuctions   = myAuctions.filter(a => ["ENDED", "PAYMENT_PENDING", "CANCELLED", "REJECTED", "NO_BIDDER"].includes(a.status));
 
   function openAuction(a: AuctionListItem) {
     if (!isAuctionViewable(a.status)) {
@@ -119,6 +137,27 @@ export function MyAuctions() {
       return;
     }
     navigate(`/auctions/${a.auctionId}`);
+  }
+
+  function editAuction(a: AuctionListItem) {
+    navigate(`/auctions/${a.auctionId}/edit`, { state: { auction: a } });
+  }
+
+  // 판매자 경매 취소 — 백엔드 정책상 검수 전(PENDING) 상태에서만 가능
+  async function handleCancel(a: AuctionListItem) {
+    if (!window.confirm(`"${a.title}" 경매를 취소할까요? 되돌릴 수 없습니다.`)) return;
+    setCancellingId(a.auctionId);
+    try {
+      const res = await cancelAuction(a.auctionId);
+      toast.success("경매를 취소했습니다.");
+      setMyAuctions((prev) =>
+        prev.map((x) => (x.auctionId === a.auctionId ? { ...x, status: res.status } : x))
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "경매 취소에 실패했습니다.");
+    } finally {
+      setCancellingId(null);
+    }
   }
 
   if (authLoading || isLoading) {
@@ -225,11 +264,34 @@ export function MyAuctions() {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {activeAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} />
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={() => editAuction(a)} />
                   ))}
                 </div>
               )}
             </div>
+
+            {/* Pending inspection */}
+            {pendingAuctions.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                  <h2 className="font-bold text-sm uppercase tracking-wide">검수 중인 경매</h2>
+                  <span className="text-xs text-muted-foreground">({pendingAuctions.length})</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {pendingAuctions.map(a => (
+                    <AuctionCard
+                      key={a.auctionId}
+                      auction={a}
+                      onClick={() => openAuction(a)}
+                      onEdit={() => editAuction(a)}
+                      onCancel={a.status === "PENDING" ? () => handleCancel(a) : undefined}
+                      cancelling={cancellingId === a.auctionId}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Ended */}
             {endedAuctions.length > 0 && (
@@ -241,7 +303,7 @@ export function MyAuctions() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {endedAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} />
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={() => editAuction(a)} />
                   ))}
                 </div>
               </div>

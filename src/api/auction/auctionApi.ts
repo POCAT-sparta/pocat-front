@@ -15,7 +15,7 @@ export async function getAuctions(params: AuctionListParams = {}): Promise<PageR
   if (params.series) query.set("series", params.series);
   if (params.setName) query.set("setName", params.setName);
   if (params.grade) query.set("grade", params.grade);
-  if (params.cardCategory) query.set("cardCategory", params.cardCategory);
+  if (params.cardCategory) query.set("category", params.cardCategory);
   if (params.status) query.set("status", params.status);
   if (params.page !== undefined) query.set("page", String(params.page));
   if (params.size !== undefined) query.set("size", String(params.size));

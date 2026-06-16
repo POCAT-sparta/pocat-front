@@ -4,6 +4,7 @@ import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
 import { AuctionDetail } from "@/app/auction/pages/AuctionDetail";
 import { AuctionForm } from "@/app/auction/pages/AuctionForm";
+import { AuctionEditForm } from "@/app/auction/pages/AuctionEditForm";
 import { MyAuctions } from "@/app/auction/pages/MyAuctions";
 import { Profile } from "@/app/user/pages/Profile";
 import { Login } from "@/app/auth/pages/Login";
@@ -17,6 +18,9 @@ import { TradeBoardForm } from "@/app/community/pages/TradeBoardForm";
 import { ChatList } from "@/app/chat/pages/ChatList";
 import { MyOrders } from "@/app/order/pages/MyOrders";
 import { OrderDetail } from "@/app/order/pages/OrderDetail";
+import { OrdersTest } from "@/app/order/pages/OrdersTest";
+import { RefundDetail } from "@/app/order/pages/RefundDetail";
+import { SettlementDetail } from "@/app/order/pages/SettlementDetail";
 import { CardCatalog } from "@/app/card/pages/CardCatalog";
 import { CardDetail } from "@/app/card/pages/CardDetail";
 import { CardRegister } from "@/app/card/pages/CardRegister";
@@ -40,9 +44,10 @@ export const router = createBrowserRouter([
       { index: true, Component: Home },
 
       // Auction
-      { path: "auctions/new",        Component: AuctionForm   },
-      { path: "auctions/:auctionId", Component: AuctionDetail },
-      { path: "my-auctions",         Component: MyAuctions    },
+      { path: "auctions/new",             Component: AuctionForm     },
+      { path: "auctions/:auctionId/edit", Component: AuctionEditForm },
+      { path: "auctions/:auctionId",      Component: AuctionDetail   },
+      { path: "my-auctions",              Component: MyAuctions      },
 
       // Card catalog
       { path: "cards",           Component: CardCatalog },
@@ -63,7 +68,12 @@ export const router = createBrowserRouter([
 
       // Order
       { path: "orders",            Component: MyOrders   },
+      { path: "orders/test",       Component: OrdersTest  }, // 직접 결제 테스트 전용
       { path: "orders/:orderUid",  Component: OrderDetail },
+
+      // Refund / Settlement
+      { path: "refunds/:refundId",            Component: RefundDetail     },
+      { path: "settlements/:settlementUid",   Component: SettlementDetail },
 
       // Chat
       { path: "chats", Component: ChatList },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeft, Gavel, Sparkles, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Gavel, Sparkles, CheckCircle2, AlertTriangle, RefreshCw, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { getCard, getCardAuctions, getAveragePrice } from "@/api/card/cardApi";
 import { getCardAnalysis, reanalyzeCard } from "@/api/ai/cardAnalysisApi";
@@ -10,17 +10,26 @@ import type {
   CardResponse,
 } from "@/types/card.types";
 import type { CardAnalysisResponse } from "@/types/aiAnalysis.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 function gradeLabel(grade: string) {
   return grade.replace("_", " ");
 }
 
 function formatEnds(iso: string) {
-  return new Date(iso).toLocaleString("ko-KR", {
+  return formatKST(iso, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+  });
+}
+
+function formatDate(iso: string) {
+  return formatKST(iso, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 }
 
@@ -40,6 +49,7 @@ export function CardDetail() {
   const [card, setCard] = useState<CardResponse | null>(null);
   const [auctions, setAuctions] = useState<ActiveAuctionSummary[]>([]);
   const [avg, setAvg] = useState<CardAveragePriceResponse | null>(null);
+  const [avgLoading, setAvgLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [auctionsLoading, setAuctionsLoading] = useState(true);
 
@@ -68,9 +78,11 @@ export function CardDetail() {
       .finally(() => setAuctionsLoading(false));
 
     // 평균 시세 (없을 수 있음)
+    setAvgLoading(true);
     getAveragePrice(id)
       .then(setAvg)
-      .catch(() => setAvg(null));
+      .catch(() => setAvg(null))
+      .finally(() => setAvgLoading(false));
   }, [cardId, navigate]);
 
   async function handleAnalyze() {
@@ -117,12 +129,13 @@ export function CardDetail() {
       {/* Hero */}
       <section className="bg-gradient-to-r from-[#1a1a2e] to-[#16213e] text-white py-8 border-b border-white/10">
         <div className="container mx-auto px-4 max-w-4xl">
-          <Link
-            to="/cards"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
             className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm mb-3 transition-colors w-fit"
           >
             <ArrowLeft className="w-4 h-4" /> 카드 도감
-          </Link>
+          </button>
           <h1 className="text-xl font-bold">{card.name}</h1>
           <p className="text-sm text-white/50">{card.setName} · {card.series}</p>
         </div>
@@ -151,14 +164,37 @@ export function CardDetail() {
               <Spec label="카드 번호" value={card.cardNumber} />
             </div>
 
-            {avg && avg.transactionCount > 0 && (
-              <div className="bg-card border rounded-2xl p-5">
-                <p className="text-xs text-muted-foreground mb-1">평균 시세 (거래 {avg.transactionCount}건)</p>
-                <p className="text-2xl font-extrabold text-[#CC0000]">
-                  {avg.averagePrice.toLocaleString()}원
-                </p>
+            <div className="bg-card border rounded-2xl p-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <TrendingUp className="w-4 h-4 text-[#CC0000]" />
+                <h3 className="text-sm font-bold">평균 시세</h3>
               </div>
-            )}
+
+              {avgLoading ? (
+                <div className="animate-pulse space-y-2">
+                  <div className="h-8 bg-muted rounded w-2/3" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                </div>
+              ) : avg && avg.transactionCount > 0 ? (
+                <>
+                  <p className="text-2xl font-extrabold text-[#CC0000]">
+                    {avg.averagePrice.toLocaleString()}원
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span>거래 {avg.transactionCount.toLocaleString()}건 기준</span>
+                    {avg.periodStart && avg.periodEnd && (
+                      <span>
+                        {formatDate(avg.periodStart)} ~ {formatDate(avg.periodEnd)}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  아직 거래된 내역이 없어 시세 정보가 없습니다.
+                </p>
+              )}
+            </div>
           </div>
         </div>
 

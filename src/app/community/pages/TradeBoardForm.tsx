@@ -132,7 +132,7 @@ export function TradeBoardForm() {
           <div>
             <label className="block text-sm font-semibold mb-1.5">
               <ImageIcon className="w-4 h-4 inline mr-1" />
-              썸네일 이미지 URL <span className="font-normal text-muted-foreground">(선택)</span>
+              썸네일 이미지 URL <span className="font-normal text-muted-foreground">(필수)</span>
             </label>
             <input
               value={thumbnail}

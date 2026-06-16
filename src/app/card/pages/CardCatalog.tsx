@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Search, Gavel, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getCards } from "@/api/card/cardApi";
@@ -126,18 +126,29 @@ function CardTile({ card }: { card: CardResponse }) {
 }
 
 export function CardCatalog() {
-  const [cards, setCards] = useState<CardResponse[]>([]);
-  const [keyword, setKeyword] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [grade, setGrade] = useState<CardGrade | undefined>(undefined);
-  const [category, setCategory] = useState<CardCategory | undefined>(undefined);
-  const [seriesName, setSeriesName] = useState<string | undefined>(undefined);
-  const [setName, setSetName] = useState<string | undefined>(undefined);
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  const keyword = searchParams.get("keyword") ?? "";
+  const grade = (searchParams.get("grade") as CardGrade) || undefined;
+  const category = (searchParams.get("category") as CardCategory) || undefined;
+  const seriesName = searchParams.get("series") || undefined;
+  const setName = searchParams.get("setName") || undefined;
+
+  const [searchInput, setSearchInput] = useState(keyword);
+  const [cards, setCards] = useState<CardResponse[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  function updateParam(key: string, value: string | undefined) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      return next;
+    }, { replace: true });
+  }
 
   async function load(reset: boolean) {
     const nextPage = reset ? 0 : page + 1;
@@ -157,13 +168,24 @@ export function CardCatalog() {
   }
 
   useEffect(() => {
+    setSearchInput(keyword);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyword]);
+
+  useEffect(() => {
     load(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword, grade, category, seriesName, setName]);
 
   function handleFilterChange(sel: SeriesSetSelection) {
-    setSeriesName(sel.series?.name);
-    setSetName(sel.set?.name);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (sel.series?.name) next.set("series", sel.series.name);
+      else next.delete("series");
+      if (sel.set?.name) next.set("setName", sel.set.name);
+      else next.delete("setName");
+      return next;
+    }, { replace: true });
   }
 
   const hasMore = page + 1 < totalPages;
@@ -182,7 +204,7 @@ export function CardCatalog() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              setKeyword(searchInput.trim());
+              updateParam("keyword", searchInput.trim() || undefined);
             }}
             className="mt-5 flex gap-2 max-w-md"
           >
@@ -211,7 +233,7 @@ export function CardCatalog() {
           {GRADES.map((g) => (
             <button
               key={g.label}
-              onClick={() => setGrade(g.value)}
+              onClick={() => updateParam("grade", g.value)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 grade === g.value
                   ? "bg-[#FFCB05] text-[#1a1a2e]"
@@ -225,7 +247,7 @@ export function CardCatalog() {
           {CATEGORIES.map((c) => (
             <button
               key={c.label}
-              onClick={() => setCategory(c.value)}
+              onClick={() => updateParam("category", c.value)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 category === c.value
                   ? "bg-[#FFCB05] text-[#1a1a2e]"
@@ -239,7 +261,12 @@ export function CardCatalog() {
 
         {/* Series / Set 드롭다운 필터 */}
         <div className="mb-6">
-          <SeriesSetFilter includeAll onChange={handleFilterChange} />
+          <SeriesSetFilter
+            includeAll
+            onChange={handleFilterChange}
+            initialSeriesName={seriesName}
+            initialSetName={setName}
+          />
         </div>
 
         {isLoading ? (

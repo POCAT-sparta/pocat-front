@@ -14,6 +14,7 @@ import {
   RowActionButton,
 } from "../components/AdminUI";
 import { AdminModal, adminInputClass, AdminPrimaryButton } from "../components/AdminModal";
+import { formatKST } from "@/shared/lib/datetime";
 
 // 검수(승인/거절) 가능 상태. 백엔드 validateInspectable 이 PENDING/INSPECTING 을 허용한다.
 // INSPECTING 전이 코드가 없어 실제로는 PENDING 에서 바로 승인(→ACTIVE)/거절(→REJECTED) 한다.
@@ -24,7 +25,7 @@ const PAGE_SIZE = 20;
 
 const STATUS_FILTERS: { label: string; value?: AuctionStatus }[] = [
   { label: "전체" },
-  { label: "검수중", value: "INSPECTING" },
+  { label: "검수중", value: "PENDING" },
   { label: "진행중", value: "ACTIVE" },
   { label: "종료",   value: "ENDED" },
   { label: "취소",   value: "CANCELLED" },
@@ -60,7 +61,7 @@ const STATUS_LABEL: Record<AuctionStatus, string> = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return formatKST(iso, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 function won(n: number | null) {

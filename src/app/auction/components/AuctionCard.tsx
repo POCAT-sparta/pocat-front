@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AuctionListItem } from "@/types/auction.types";
+import { serverTime } from "@/shared/lib/datetime";
 
 interface AuctionCardProps {
   auction: AuctionListItem;
@@ -12,7 +13,7 @@ export function AuctionCard({ auction }: AuctionCardProps) {
 
   useEffect(() => {
     const updateTimer = () => {
-      const distance = new Date(auction.endedAt).getTime() - Date.now();
+      const distance = serverTime(auction.endedAt) - Date.now();
 
       if (distance < 0) {
         setTimeLeft("종료");

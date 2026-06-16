@@ -1,18 +1,22 @@
-import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2 } from "lucide-react";
+import { User, ShoppingBag, Gavel, LogOut, CreditCard, MapPin, Phone, Mail, Shield, AlertTriangle, Ban, Zap, Wallet, Undo2, MessageSquare, Pencil, Check, X, Trash2, FileText, Store, Eye, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/context/AuthContext.tsx";
 import { useIssueBillingKey } from "@/app/payment/hooks/useIssueBillingKey";
+import { updateMe, deleteBillingKey } from "@/api/user/userApi";
 import { getMyOrders } from "@/api/order/orderApi";
 import { getMyBids } from "@/api/bid/bidApi";
 import { getMySettlements } from "@/api/settlement/settlementApi";
 import { getMyRefunds } from "@/api/refund/refundApi";
+import { getMyPosts } from "@/api/community/freeCommunityApi";
+import { getTradePosts } from "@/api/community/tradeCommunityApi";
 import { statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderListItem } from "@/types/order.types";
 import type { MyBidItem, BidStatus } from "@/types/bid.types";
 import type { MySettlementItem } from "@/types/settlement.types";
 import type { RefundResponse, RefundStatus } from "@/types/admin.types";
+import type { FreePostResponse, TradePostListItem } from "@/types/community.types";
 
 const TRAINER_CLASSES = ["견습 트레이너", "정식 트레이너", "상급 트레이너", "엘리트 트레이너", "마스터 트레이너"];
 
@@ -43,6 +47,19 @@ export function Profile() {
   const [refunds, setRefunds] = useState<RefundResponse[]>([]);
   const [refundsLoading, setRefundsLoading] = useState(false);
   const [refundsLoaded, setRefundsLoaded] = useState(false);
+
+  const [freePosts, setFreePosts] = useState<FreePostResponse[]>([]);
+  const [freePostsLoading, setFreePostsLoading] = useState(false);
+  const [freePostsLoaded, setFreePostsLoaded] = useState(false);
+
+  const [tradePosts, setTradePosts] = useState<TradePostListItem[]>([]);
+  const [tradePostsLoading, setTradePostsLoading] = useState(false);
+  const [tradePostsLoaded, setTradePostsLoaded] = useState(false);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [form, setForm] = useState({ nickname: "", phone: "", address: "" });
+  const [isDeletingCard, setIsDeletingCard] = useState(false);
 
   useEffect(() => {
     if (activeTab === "buying" && !ordersLoaded) {
@@ -81,6 +98,25 @@ export function Profile() {
           setRefundsLoading(false);
           setRefundsLoaded(true);
         });
+    } else if (activeTab === "freeposts" && !freePostsLoaded) {
+      setFreePostsLoading(true);
+      getMyPosts({ size: 20 })
+        .then((page) => setFreePosts(page.content))
+        .catch(() => toast.error("내 자유 게시글을 불러오지 못했습니다."))
+        .finally(() => {
+          setFreePostsLoading(false);
+          setFreePostsLoaded(true);
+        });
+    } else if (activeTab === "tradeposts" && !tradePostsLoaded) {
+      setTradePostsLoading(true);
+      // 거래글은 '내 글' 전용 API가 없어 목록을 받아 닉네임으로 필터
+      getTradePosts({ size: 100 })
+        .then((page) => setTradePosts(page.content.filter((p) => p.authorNickname === user?.nickname)))
+        .catch(() => toast.error("내 거래 게시글을 불러오지 못했습니다."))
+        .finally(() => {
+          setTradePostsLoading(false);
+          setTradePostsLoaded(true);
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -106,12 +142,86 @@ export function Profile() {
     }
   }
 
+  function startEditing() {
+    if (!user) return;
+    setForm({
+      nickname: user.nickname,
+      phone: user.phone,
+      address: user.address ?? "",
+    });
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+  }
+
+  async function handleSaveInfo() {
+    if (!user) return;
+
+    const nickname = form.nickname.trim();
+    const phone = form.phone.trim();
+    const address = form.address.trim();
+
+    if (!nickname) {
+      toast.error("닉네임을 입력해주세요.");
+      return;
+    }
+    if (!phone) {
+      toast.error("휴대폰 번호를 입력해주세요.");
+      return;
+    }
+    if (!/^[0-9-]+$/.test(phone)) {
+      toast.error("휴대폰 번호 형식이 올바르지 않습니다.");
+      return;
+    }
+
+    const payload: { nickname?: string; phone?: string; address?: string } = {};
+    if (nickname !== user.nickname) payload.nickname = nickname;
+    if (phone !== user.phone) payload.phone = phone;
+    if (address !== (user.address ?? "")) payload.address = address;
+
+    if (Object.keys(payload).length === 0) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateMe(payload);
+      await refreshUser();
+      toast.success("내 정보가 수정되었습니다.");
+      setIsEditing(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "내 정보 수정에 실패했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDeleteCard() {
+    if (!user) return;
+    if (!window.confirm("등록된 카드를 삭제하시겠습니까?")) return;
+    setIsDeletingCard(true);
+    try {
+      await deleteBillingKey();
+      toast.success("카드가 삭제되었습니다.");
+      await refreshUser();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "카드 삭제에 실패했습니다.");
+    } finally {
+      setIsDeletingCard(false);
+    }
+  }
+
   const tabs = [
     { id: "info",        label: "내 정보",   icon: <User className="w-4 h-4" />         },
     { id: "buying",      label: "구매 내역", icon: <ShoppingBag className="w-4 h-4" />  },
     { id: "bids",        label: "입찰 내역", icon: <Gavel className="w-4 h-4" />        },
     { id: "settlements", label: "정산 내역", icon: <Wallet className="w-4 h-4" />       },
     { id: "refunds",     label: "환불 내역", icon: <Undo2 className="w-4 h-4" />        },
+    { id: "freeposts",   label: "내 자유글", icon: <FileText className="w-4 h-4" />     },
+    { id: "tradeposts",  label: "내 거래글", icon: <Store className="w-4 h-4" />        },
   ];
 
   async function handleLogout() {
@@ -215,12 +325,24 @@ export function Profile() {
             </div>
 
             {/* Quick nav */}
-            <div className="flex gap-2 mt-6">
+            <div className="flex flex-wrap gap-2 mt-6">
               <Link
                 to="/my-auctions"
                 className="flex items-center gap-1.5 bg-[#CC0000] hover:bg-[#aa0000] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
               >
                 <Zap className="w-3.5 h-3.5" /> 내 경매
+              </Link>
+              <Link
+                to="/orders"
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" /> 내 주문
+              </Link>
+              <Link
+                to="/chats"
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> 내 채팅
               </Link>
               <Link
                 to="/auctions/new"
@@ -260,11 +382,67 @@ export function Profile() {
             {/* ── 내 정보 ───────────────────────────────────────────────── */}
             {activeTab === "info" && (
               <div className="max-w-lg space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">기본 정보</h3>
+                  {!isEditing ? (
+                    <button
+                      onClick={startEditing}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-1.5 rounded-xl transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> 수정
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={cancelEditing}
+                        disabled={isSaving}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-1.5 rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-3.5 h-3.5" /> 취소
+                      </button>
+                      <button
+                        onClick={handleSaveInfo}
+                        disabled={isSaving}
+                        className="flex items-center gap-1.5 text-xs text-white bg-[#CC0000] hover:bg-[#aa0000] px-3 py-1.5 rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5" /> {isSaving ? "저장 중..." : "저장"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <InfoCard icon={<Mail className="w-4 h-4 text-[#FFCB05]" />}   label="이메일"   value={user.email} />
-                  <InfoCard icon={<User className="w-4 h-4 text-[#FFCB05]" />}   label="닉네임"   value={user.nickname} />
-                  <InfoCard icon={<Phone className="w-4 h-4 text-[#FFCB05]" />}  label="휴대폰"   value={user.phone} />
-                  <InfoCard icon={<MapPin className="w-4 h-4 text-[#FFCB05]" />} label="주소"     value={user.address ?? "미등록"} />
+                  {isEditing ? (
+                    <>
+                      <EditCard
+                        icon={<User className="w-4 h-4 text-[#FFCB05]" />}
+                        label="닉네임"
+                        value={form.nickname}
+                        onChange={(v) => setForm((f) => ({ ...f, nickname: v }))}
+                      />
+                      <EditCard
+                        icon={<Phone className="w-4 h-4 text-[#FFCB05]" />}
+                        label="휴대폰"
+                        value={form.phone}
+                        onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                        placeholder="010-0000-0000"
+                      />
+                      <EditCard
+                        icon={<MapPin className="w-4 h-4 text-[#FFCB05]" />}
+                        label="주소"
+                        value={form.address}
+                        onChange={(v) => setForm((f) => ({ ...f, address: v }))}
+                        placeholder="주소를 입력하세요"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <InfoCard icon={<User className="w-4 h-4 text-[#FFCB05]" />}   label="닉네임"   value={user.nickname} />
+                      <InfoCard icon={<Phone className="w-4 h-4 text-[#FFCB05]" />}  label="휴대폰"   value={user.phone} />
+                      <InfoCard icon={<MapPin className="w-4 h-4 text-[#FFCB05]" />} label="주소"     value={user.address ?? "미등록"} />
+                    </>
+                  )}
                   <InfoCard
                     icon={<CreditCard className="w-4 h-4 text-[#FFCB05]" />}
                     label="계좌"
@@ -277,15 +455,25 @@ export function Profile() {
                   />
                 </div>
 
-                <div className="border-t pt-5">
+                <div className="border-t pt-5 flex flex-wrap gap-2">
                   <button
                     onClick={handleRegisterCard}
-                    disabled={isIssuing}
+                    disabled={isIssuing || isDeletingCard}
                     className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
                   >
                     <CreditCard className="w-3.5 h-3.5" />
                     {isIssuing ? "등록 중..." : user.hasBillingKey ? "카드 변경" : "카드 등록"}
                   </button>
+                  {user.hasBillingKey && (
+                    <button
+                      onClick={handleDeleteCard}
+                      disabled={isIssuing || isDeletingCard}
+                      className="flex items-center gap-2 text-xs text-red-500 hover:text-red-600 border border-red-500/30 hover:border-red-500/50 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {isDeletingCard ? "삭제 중..." : "카드 삭제"}
+                    </button>
+                  )}
                 </div>
 
                 <div className="border-t pt-5 space-y-3">
@@ -406,7 +594,8 @@ export function Profile() {
                       return (
                         <li
                           key={settlement.settlementUid}
-                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+                          onClick={() => navigate(`/settlements/${settlement.settlementUid}`, { state: { settlement } })}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/60 transition-colors"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             {settlement.cardImageUrl && (
@@ -458,7 +647,8 @@ export function Profile() {
                       return (
                         <li
                           key={refund.refundId}
-                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+                          onClick={() => navigate(`/refunds/${refund.refundId}`, { state: { refund } })}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/60 transition-colors"
                         >
                           <div className="min-w-0">
                             <p className="font-medium truncate">{refund.reason}</p>
@@ -480,6 +670,91 @@ export function Profile() {
                 )}
               </div>
             )}
+
+            {/* ── 내 자유글 ──────────────────────────────────────────────── */}
+            {activeTab === "freeposts" && (
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Link to="/free/new" className="text-xs text-[#CC0000] hover:underline transition-colors">
+                    + 자유글 작성
+                  </Link>
+                </div>
+                {freePostsLoading ? (
+                  <SkeletonList />
+                ) : freePosts.length === 0 ? (
+                  <EmptyTab emoji="📝" title="작성한 자유글이 없습니다" desc="자유게시판에 글을 남겨보세요." />
+                ) : (
+                  <ul className="space-y-3">
+                    {freePosts.map((post) => (
+                      <li key={post.id}>
+                        <Link
+                          to={`/free/${post.id}`}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:bg-muted/60 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{post.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{post.createdAt.slice(0, 10)}</p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Eye className="w-3.5 h-3.5" /> {post.viewCount}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MessageCircle className="w-3.5 h-3.5" /> {post.commentCount}
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* ── 내 거래글 ──────────────────────────────────────────────── */}
+            {activeTab === "tradeposts" && (
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Link to="/trade/new" className="text-xs text-[#CC0000] hover:underline transition-colors">
+                    + 거래글 작성
+                  </Link>
+                </div>
+                {tradePostsLoading ? (
+                  <SkeletonList />
+                ) : tradePosts.length === 0 ? (
+                  <EmptyTab emoji="🤝" title="작성한 거래글이 없습니다" desc="거래게시판에 판매글을 올려보세요." />
+                ) : (
+                  <ul className="space-y-3">
+                    {tradePosts.map((post) => (
+                      <li key={post.id}>
+                        <Link
+                          to={`/trade/${post.id}`}
+                          className="bg-muted/40 rounded-xl px-4 py-3 flex items-center gap-3 hover:bg-muted/60 transition-colors"
+                        >
+                          {post.thumbnail ? (
+                            <img src={post.thumbnail} alt={post.title} className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center text-lg shrink-0">🃏</div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{post.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                              {post.createdAt.slice(0, 10)}
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" /> {post.viewCount}
+                              </span>
+                            </p>
+                          </div>
+                          <span className="text-sm font-extrabold text-[#CC0000] shrink-0">
+                            {post.price.toLocaleString()}원
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -494,6 +769,36 @@ function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string
       <div className="min-w-0">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
         <p className="text-sm font-medium truncate">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function EditCard({
+  icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="bg-muted/40 rounded-xl px-4 py-3 flex items-start gap-3 ring-1 ring-[#CC0000]/20">
+      <div className="mt-0.5 shrink-0">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <label className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5 block">{label}</label>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-transparent text-sm font-medium outline-none border-b border-border focus:border-[#CC0000] transition-colors pb-0.5"
+        />
       </div>
     </div>
   );

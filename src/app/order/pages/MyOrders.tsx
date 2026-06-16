@@ -1,23 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Receipt, CreditCard } from "lucide-react";
+import { Receipt, CreditCard, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { getMyOrders } from "@/api/order/orderApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
-import { isPayable, statusMeta } from "@/app/order/lib/orderStatus";
-import type { OrderListItem, OrderStatus } from "@/types/order.types";
+import { isPayable, isPaid, isPaymentExpired, statusMeta } from "@/app/order/lib/orderStatus";
+import type { OrderListItem } from "@/types/order.types";
+import { formatKST } from "@/shared/lib/datetime";
 
-const FILTERS: { label: string; value?: OrderStatus }[] = [
-  { label: "전체" },
-  { label: "결제 대기", value: "PAYMENT_PENDING" },
-  { label: "결제 실패", value: "AUTO_PAYMENT_FAILED" },
-  { label: "결제 완료", value: "PAYMENT_COMPLETED" },
-  { label: "배송", value: "SHIPPING" },
+type TabKey = "ALL" | "PENDING" | "UNPAID" | "COMPLETED";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "ALL", label: "전체" },
+  { key: "PENDING", label: "결제 대기" },
+  { key: "UNPAID", label: "낙찰 후 미결제" },
+  { key: "COMPLETED", label: "결제 완료" },
 ];
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", {
+  return formatKST(iso, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -27,18 +29,40 @@ function formatDate(iso: string) {
 export function MyOrders() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
-  const { payForAuction, isPaying } = usePortonePayment();
+  const { payForOrder, isPaying } = usePortonePayment();
 
   const [orders, setOrders] = useState<OrderListItem[]>([]);
-  const [filter, setFilter] = useState<OrderStatus | undefined>(undefined);
+  const [tab, setTab] = useState<TabKey>("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [payingUid, setPayingUid] = useState<string | null>(null);
 
-  async function load(status?: OrderStatus) {
+  async function load(activeTab: TabKey) {
     setIsLoading(true);
     try {
-      const page = await getMyOrders({ status, size: 30 });
-      setOrders(page.content);
+      let list: OrderListItem[];
+      if (activeTab === "PENDING") {
+        // 결제 대기 — 경매(AUCTION) 낙찰 주문만 노출 (즉시구매 제외)
+        const page = await getMyOrders({ status: "PAYMENT_PENDING", size: 30 });
+        list = page.content.filter((o) => o.orderType === "AUCTION");
+      } else if (activeTab === "UNPAID") {
+        // 낙찰 후 미결제 — 결제 창이 완전히 지나 더는 결제할 수 없는 경매 실패 주문만
+        const [auto, direct] = await Promise.all([
+          getMyOrders({ status: "AUTO_PAYMENT_FAILED", size: 30 }),
+          getMyOrders({ status: "DIRECT_PAYMENT_FAILED", size: 30 }),
+        ]);
+        list = [...auto.content, ...direct.content]
+          .filter((o) => o.orderType === "AUCTION" && isPaymentExpired(o.paymentDeadline))
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      } else if (activeTab === "COMPLETED") {
+        // 결제 완료 — AUCTION / BUYOUT 모두 노출
+        const page = await getMyOrders({ status: "PAYMENT_COMPLETED", size: 30 });
+        list = page.content;
+      } else {
+        // 전체 — 결제 완료되지 않은 즉시구매(BUYOUT)는 제외
+        const page = await getMyOrders({ size: 30 });
+        list = page.content.filter((o) => o.orderType !== "BUYOUT" || isPaid(o.orderStatus));
+      }
+      setOrders(list);
     } catch {
       toast.error("주문 목록을 불러오지 못했습니다.");
     } finally {
@@ -52,19 +76,19 @@ export function MyOrders() {
       navigate("/login");
       return;
     }
-    load(filter);
+    load(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, isAuthenticated, filter]);
+  }, [authLoading, isAuthenticated, tab]);
 
   async function handleDirectPay(order: OrderListItem) {
     setPayingUid(order.orderUid);
     try {
-      await payForAuction(order.auctionId, order.cardName, {
+      await payForOrder(order.orderId, order.cardName, {
         fullName: user?.nickname,
         email: user?.email,
       });
       toast.success("결제 완료!");
-      await load(filter);
+      await load(tab);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "결제에 실패했습니다.");
     } finally {
@@ -89,23 +113,31 @@ export function MyOrders() {
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Filter tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-          {FILTERS.map((f) => {
-            const active = filter === f.value;
+          {TABS.map((t) => {
+            const active = tab === t.key;
             return (
               <button
-                key={f.label}
-                onClick={() => setFilter(f.value)}
+                key={t.key}
+                onClick={() => setTab(t.key)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   active
                     ? "bg-[#FFCB05] text-[#1a1a2e]"
                     : "bg-card border text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {f.label}
+                {t.label}
               </button>
             );
           })}
         </div>
+
+        {/* 낙찰 후 미결제 안내 */}
+        {tab === "UNPAID" && (
+          <div className="mb-5 flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 text-xs text-amber-500">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>지속적으로 낙찰 후 결제를 진행하지 않을 경우 서비스 이용에 제약이 생길 수 있습니다.</span>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="space-y-3 animate-pulse">
@@ -130,7 +162,7 @@ export function MyOrders() {
           <ul className="space-y-3">
             {orders.map((order) => {
               const meta = statusMeta(order.orderStatus);
-              const payable = isPayable(order.orderStatus);
+              const payable = isPayable(order.orderStatus) && !isPaymentExpired(order.paymentDeadline);
               return (
                 <li
                   key={order.orderUid}

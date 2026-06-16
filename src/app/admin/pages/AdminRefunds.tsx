@@ -11,6 +11,7 @@ import {
   RowActionButton,
 } from "../components/AdminUI";
 import { AdminModal, adminInputClass, AdminPrimaryButton } from "../components/AdminModal";
+import { formatKST } from "@/shared/lib/datetime";
 
 const PAGE_SIZE = 20;
 
@@ -41,7 +42,7 @@ const STATUS_TONE: Record<RefundStatus, "default" | "green" | "red" | "yellow" |
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return formatKST(iso, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 export function AdminRefunds() {

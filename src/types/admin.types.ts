@@ -123,6 +123,12 @@ export interface UpdateCardRequest {
   source?: CardSource;
 }
 
+/** POST /api/v1/admin/es-migrate 응답 (동기 실행, 마이그레이션 건수) */
+export interface EsMigrationResponse {
+  cardsMigrated: number;
+  auctionsMigrated: number;
+}
+
 /* ===================== 주문 (GET /admin/orders) ===================== */
 
 export interface AdminOrderResponse {

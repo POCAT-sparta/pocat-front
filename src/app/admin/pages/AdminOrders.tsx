@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getAdminOrders } from "@/api/admin";
 import type { AdminOrderResponse } from "@/types/admin.types";
 import type { OrderStatus } from "@/types/order.types";
+import { formatKST } from "@/shared/lib/datetime";
 import {
   AdminPageHeader,
   AdminPanel,
@@ -49,7 +50,7 @@ const STATUS_TONE: Record<OrderStatus, "default" | "green" | "red" | "yellow" | 
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return formatKST(iso, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 export function AdminOrders() {

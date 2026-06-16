@@ -3,7 +3,6 @@ import type { ApiResponse } from "@/shared/types/api.ts";
 import type {
   MyOrderParams,
   OrderDetail,
-  OrderListItem,
   OrderPage,
 } from "@/types/order.types";
 
@@ -25,15 +24,6 @@ export async function getMyOrders(params: MyOrderParams = {}): Promise<OrderPage
 export async function getOrder(orderUid: string): Promise<OrderDetail> {
   const res = await apiClient.get<ApiResponse<OrderDetail>>(
     `/api/v1/orders/${orderUid}`
-  );
-  return res.data;
-}
-
-/** 주문 취소 (사유 필수) */
-export async function cancelOrder(orderUid: string, reason: string): Promise<OrderListItem> {
-  const res = await apiClient.patch<ApiResponse<OrderListItem>>(
-    `/api/v1/orders/${orderUid}/cancel`,
-    { reason }
   );
   return res.data;
 }

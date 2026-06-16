@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeft, CreditCard, XCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import { cancelOrder, getOrder } from "@/api/order/orderApi";
+import { getOrder } from "@/api/order/orderApi";
+import { createRefund } from "@/api/refund/refundApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
-import { isCancelable, isPayable, statusMeta } from "@/app/order/lib/orderStatus";
+import { isPayable, isPaymentExpired, isRefundable, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderDetail as OrderDetailType } from "@/types/order.types";
+import { formatKST } from "@/shared/lib/datetime";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("ko-KR", {
+  return formatKST(iso, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -31,11 +33,13 @@ export function OrderDetail() {
   const { orderUid } = useParams<{ orderUid: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { payForAuction, isPaying } = usePortonePayment();
+  const { payForOrder, isPaying } = usePortonePayment();
 
   const [order, setOrder] = useState<OrderDetailType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCancelling, setIsCancelling] = useState(false);
+  const [showRefundForm, setShowRefundForm] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [isRefunding, setIsRefunding] = useState(false);
 
   async function load() {
     if (!orderUid) return;
@@ -63,7 +67,7 @@ export function OrderDetail() {
   async function handleDirectPay() {
     if (!order) return;
     try {
-      await payForAuction(order.auctionId, order.card.name, {
+      await payForOrder(order.orderId, order.card.name, {
         fullName: user?.nickname,
         email: user?.email,
       });
@@ -74,19 +78,24 @@ export function OrderDetail() {
     }
   }
 
-  async function handleCancel() {
+  async function handleRefundRequest() {
     if (!order) return;
-    const reason = window.prompt("취소 사유를 입력해주세요.");
-    if (!reason || !reason.trim()) return;
-    setIsCancelling(true);
+    const reason = refundReason.trim();
+    if (!reason) {
+      toast.error("환불 사유를 입력해주세요.");
+      return;
+    }
+    setIsRefunding(true);
     try {
-      await cancelOrder(order.orderUid, reason.trim());
-      toast.success("주문이 취소되었습니다.");
+      await createRefund({ orderId: order.orderId, reason });
+      toast.success("환불 요청이 접수되었습니다.");
+      setShowRefundForm(false);
+      setRefundReason("");
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "취소에 실패했습니다.");
+      toast.error(e instanceof Error ? e.message : "환불 요청에 실패했습니다.");
     } finally {
-      setIsCancelling(false);
+      setIsRefunding(false);
     }
   }
 
@@ -104,8 +113,8 @@ export function OrderDetail() {
   if (!order) return null;
 
   const meta = statusMeta(order.orderStatus);
-  const payable = isPayable(order.orderStatus);
-  const cancelable = isCancelable(order.orderStatus);
+  const payable = isPayable(order.orderStatus) && !isPaymentExpired(order.paymentDeadline);
+  const refundable = isRefundable(order.orderStatus);
 
   return (
     <div className="min-h-screen bg-background">
@@ -172,28 +181,62 @@ export function OrderDetail() {
         </div>
 
         {/* Actions */}
-        {(payable || cancelable) && (
+        {payable && (
           <div className="flex gap-2">
-            {payable && (
-              <button
-                onClick={handleDirectPay}
-                disabled={isPaying}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#CC0000] hover:bg-[#aa0000] text-white py-3.5 rounded-2xl font-bold transition-colors disabled:opacity-50"
-              >
-                <CreditCard className="w-5 h-5" />
-                {isPaying ? "결제 처리 중…" : `${order.finalPrice.toLocaleString()}원 직접 결제`}
-              </button>
-            )}
-            {cancelable && (
-              <button
-                onClick={handleCancel}
-                disabled={isCancelling}
-                className="flex items-center justify-center gap-1.5 border border-red-200 text-red-500 px-5 py-3.5 rounded-2xl text-sm hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors disabled:opacity-50"
-              >
-                <XCircle className="w-4 h-4" /> 주문 취소
-              </button>
-            )}
+            <button
+              onClick={handleDirectPay}
+              disabled={isPaying}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#CC0000] hover:bg-[#aa0000] text-white py-3.5 rounded-2xl font-bold transition-colors disabled:opacity-50"
+            >
+              <CreditCard className="w-5 h-5" />
+              {isPaying ? "결제 처리 중…" : `${order.finalPrice.toLocaleString()}원 직접 결제`}
+            </button>
           </div>
+        )}
+
+        {/* 환불 요청 — 결제 완료 / 거래 완료 주문 */}
+        {refundable && (
+          showRefundForm ? (
+            <div className="bg-card border rounded-2xl p-5 space-y-3">
+              <div>
+                <p className="font-semibold text-sm">환불 요청</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  결제 금액 {order.finalPrice.toLocaleString()}원이 전액 환불 요청됩니다. 사유를 입력해주세요.
+                </p>
+              </div>
+              <textarea
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                placeholder="환불 사유를 입력해주세요. (예: 단순 변심, 상품 불량 등)"
+                rows={3}
+                className="w-full border rounded-xl px-3.5 py-2.5 bg-background text-sm outline-none focus:border-[#CC0000] transition-colors resize-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowRefundForm(false); setRefundReason(""); }}
+                  disabled={isRefunding}
+                  className="px-4 py-2.5 rounded-xl border text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleRefundRequest}
+                  disabled={isRefunding || !refundReason.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#CC0000] hover:bg-[#aa0000] text-white py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                >
+                  {isRefunding ? "요청 중…" : "환불 요청하기"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowRefundForm(true)}
+              className="w-full flex items-center justify-center gap-2 border border-[#CC0000]/40 text-[#CC0000] hover:bg-[#CC0000]/5 py-3.5 rounded-2xl font-bold transition-colors"
+            >
+              <RotateCcw className="w-5 h-5" />
+              환불 요청
+            </button>
+          )
         )}
       </div>
     </div>

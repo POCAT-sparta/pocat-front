@@ -18,8 +18,14 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "sets",    label: "세트"   },
 ];
 
-/** 이름 한글 수정 대상 (세 엔티티 공통 형태) */
-type NameKoTarget = { id: number; label: string; nameKo: string | null };
+/** 수정 대상 — 한글명만 편집 가능, 나머지는 read-only 컨텍스트 */
+type EditTarget = {
+  id: number;
+  name: string;             // 영문명
+  nameKo: string | null;
+  setId?: string;           // 세트 전용
+  seriesId?: number | null; // 세트 전용
+};
 
 export function AdminCatalog() {
   const [tab, setTab] = useState<Tab>("series");
@@ -39,7 +45,7 @@ export function AdminCatalog() {
   const [fSeriesId, setFSeriesId] = useState("");
 
   // 한글명 수정 모달
-  const [editTarget, setEditTarget] = useState<NameKoTarget | null>(null);
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [editNameKo, setEditNameKo] = useState("");
 
   useEffect(() => {
@@ -93,7 +99,7 @@ export function AdminCatalog() {
     }
   }
 
-  function openEdit(t: NameKoTarget) {
+  function openEdit(t: EditTarget) {
     setEditTarget(t);
     setEditNameKo(t.nameKo ?? "");
   }
@@ -180,7 +186,7 @@ export function AdminCatalog() {
                 <td className="px-4 py-3 text-white/60">{s.nameKo ?? <span className="text-white/30">—</span>}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1.5">
-                    <RowActionButton disabled={busy} onClick={() => openEdit({ id: s.id, label: s.name, nameKo: s.nameKo })}>한글명</RowActionButton>
+                    <RowActionButton disabled={busy} onClick={() => openEdit({ id: s.id, name: s.name, nameKo: s.nameKo })}>수정</RowActionButton>
                     <RowActionButton tone="red" disabled={busy} onClick={() => handleDelete(s.id, s.name)}>삭제</RowActionButton>
                   </div>
                 </td>
@@ -193,7 +199,7 @@ export function AdminCatalog() {
                 <td className="px-4 py-3 text-white/60">{p.nameKo ?? <span className="text-white/30">—</span>}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1.5">
-                    <RowActionButton disabled={busy} onClick={() => openEdit({ id: p.id, label: p.name, nameKo: p.nameKo })}>한글명</RowActionButton>
+                    <RowActionButton disabled={busy} onClick={() => openEdit({ id: p.id, name: p.name, nameKo: p.nameKo })}>수정</RowActionButton>
                     <RowActionButton tone="red" disabled={busy} onClick={() => handleDelete(p.id, p.name)}>삭제</RowActionButton>
                   </div>
                 </td>
@@ -208,7 +214,7 @@ export function AdminCatalog() {
                 <td className="px-4 py-3 text-white/50">{s.seriesId ?? <span className="text-white/30">—</span>}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1.5">
-                    <RowActionButton disabled={busy} onClick={() => openEdit({ id: s.id, label: s.name, nameKo: s.nameKo })}>한글명</RowActionButton>
+                    <RowActionButton disabled={busy} onClick={() => openEdit({ id: s.id, name: s.name, nameKo: s.nameKo, setId: s.setId, seriesId: s.seriesId })}>수정</RowActionButton>
                     <RowActionButton tone="red" disabled={busy} onClick={() => handleDelete(s.id, s.name)}>삭제</RowActionButton>
                   </div>
                 </td>
@@ -251,9 +257,29 @@ export function AdminCatalog() {
         </AdminModal>
       )}
 
-      {/* 한글명 수정 모달 */}
+      {/* 수정 모달 — 한글명만 편집, 나머지는 read-only */}
       {editTarget && (
-        <AdminModal title={`한글명 수정 — ${editTarget.label}`} onClose={() => setEditTarget(null)}>
+        <AdminModal title={`수정 — ${editTarget.name}`} onClose={() => setEditTarget(null)}>
+          {/* read-only 컨텍스트 */}
+          <dl className="mb-5 space-y-2 rounded-xl bg-white/5 px-4 py-3 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt className="text-white/40">이름 (영문)</dt>
+              <dd className="text-white/80 text-right truncate">{editTarget.name}</dd>
+            </div>
+            {editTarget.setId !== undefined && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-white/40">Set ID</dt>
+                <dd className="text-white/80 text-right truncate">{editTarget.setId}</dd>
+              </div>
+            )}
+            {editTarget.setId !== undefined && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-white/40">시리즈 ID</dt>
+                <dd className="text-white/80 text-right">{editTarget.seriesId ?? "—"}</dd>
+              </div>
+            )}
+          </dl>
+
           <label className="block text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">한글명</label>
           <input value={editNameKo} onChange={(e) => setEditNameKo(e.target.value)} placeholder="한글명을 입력하세요" className={adminInputClass} autoFocus />
           <div className="flex justify-end gap-2 mt-6">

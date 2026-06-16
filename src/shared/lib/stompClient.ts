@@ -85,7 +85,10 @@ export function subscribe(destination: string, handler: MessageHandler): () => v
   }
   entry.handlers.add(handler);
 
-  attach(destination, getClient());
+  // 클라이언트 활성화(연결)를 보장하되, attach 에는 반드시 DestEntry 를 넘긴다.
+  // 이미 연결된 상태에서 구독하면 onConnect 재attach 가 안 일어나므로 여기서 직접 attach.
+  getClient();
+  attach(destination, entry);
 
   return () => {
     const current = destinations.get(destination);

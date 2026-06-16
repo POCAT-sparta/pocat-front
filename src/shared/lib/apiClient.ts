@@ -34,7 +34,17 @@ export function clearTokens() {
   deleteCookie("refreshToken");
 }
 
-async function refreshTokens(): Promise<boolean> {
+/** 진행 중인 재발급 요청 (동시 401 시 단일 호출로 공유) */
+let refreshPromise: Promise<boolean> | null = null;
+
+function refreshTokens(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
+async function doRefresh(): Promise<boolean> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
 
