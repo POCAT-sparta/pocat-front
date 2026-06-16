@@ -34,6 +34,10 @@ export interface CardResponse {
   status: CardStatus;
   createdAt: string;
   updatedAt: string;
+  /** 상세 화면 표시용 이름. 포켓몬 연결 시 포켓몬 영문명, 없으면 카드 자체 이름. 항상 값 있음 */
+  cardDetailName: string;
+  /** 상세 화면 표시용 한글 이름. 포켓몬 연결 + 한글명 있을 때만 값, 그 외엔 null */
+  cardDetailNameKo: string | null;
   /** 단건 조회 시 채워짐 (목록 조회 시 null) */
   activeAuction: ActiveAuctionSummary | null;
   /** 목록 조회 시 채워짐 (진행 중 경매 수) */

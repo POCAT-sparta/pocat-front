@@ -124,6 +124,10 @@ export function CardDetail() {
 
   if (!card) return null;
 
+  const nameDisplay = card.cardDetailNameKo
+    ? `${card.cardDetailNameKo}/${card.cardDetailName}`
+    : card.cardDetailName;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
@@ -157,6 +161,7 @@ export function CardDetail() {
           {/* Info */}
           <div className="space-y-4">
             <div className="bg-card border rounded-2xl p-5">
+              <Spec label="이름" value={nameDisplay} />
               <Spec label="등급" value={<span className="text-[#FFCB05] font-bold">{gradeLabel(card.grade)}</span>} />
               <Spec label="레어도" value={card.rarity} />
               <Spec label="카테고리" value={card.category} />

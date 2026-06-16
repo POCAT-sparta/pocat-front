@@ -230,18 +230,24 @@ export function AuctionDetail() {
 
           {/* ── Card (3D) ─────────────────────────────────────────────────── */}
           <div className="flex items-start justify-center">
-            {auction.cardImageUrl ? (
-              <CardItem
-                imageUrl={auction.cardImageUrl}
-                name={auction.cardName}
-                grade={auction.grade as CardGrade}
-                className="w-full max-w-sm"
-              />
-            ) : (
-              <div className="w-full max-w-sm aspect-[2/3] rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center text-7xl border border-white/10">
-                💰
-              </div>
-            )}
+            <Link
+              to={`/cards/${auction.cardId}`}
+              aria-label="카드 상세 보기"
+              className="block w-full max-w-sm cursor-pointer rounded-2xl transition-shadow hover:shadow-2xl hover:shadow-[#FFCB05]/20"
+            >
+              {auction.cardImageUrl ? (
+                <CardItem
+                  imageUrl={auction.cardImageUrl}
+                  name={auction.cardName}
+                  grade={auction.grade as CardGrade}
+                  className="w-full max-w-sm"
+                />
+              ) : (
+                <div className="w-full max-w-sm aspect-[2/3] rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center text-7xl border border-white/10">
+                  💰
+                </div>
+              )}
+            </Link>
           </div>
 
           {/* ── Info panel ────────────────────────────────────────────────── */}
