@@ -5,6 +5,20 @@ import { toast } from "sonner";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { getAuctionDetail, updateAuction } from "@/api/auction/auctionApi";
 import type { AuctionListItem } from "@/types/auction.types";
+import { serverTime } from "@/shared/lib/datetime";
+
+/** 이미 끝난(수정 불가) 상태 */
+const ENDED_STATUSES = ["ENDED", "PAYMENT_PENDING", "CANCELLED", "REJECTED", "NO_BIDDER"];
+
+/**
+ * 수정 가능 여부. 끝난 상태이거나, 상태가 ACTIVE 라도 마감 시각이 지났으면(서버가
+ * ENDED 로 갱신하기 전) 사실상 종료로 보고 수정을 막는다. MyAuctions 와 동일 정책.
+ */
+function isAuctionEditable(status: string, endedAt: string) {
+  if (ENDED_STATUSES.includes(status)) return false;
+  if (status === "ACTIVE" && serverTime(endedAt) <= Date.now()) return false;
+  return true;
+}
 
 function gradeLabel(grade: string) {
   if (grade === "PSA_10") return "⭐ PSA 10";
@@ -47,10 +61,23 @@ export function AuctionEditForm() {
     if (!isAuthenticated) { navigate("/login"); return; }
     if (!auctionId) { navigate("/my-auctions"); return; }
 
+    // 목록에서 넘어온 데이터로 이미 종료된 경매면 진입 차단
+    if (stateAuction && !isAuctionEditable(stateAuction.status, stateAuction.endedAt)) {
+      toast.error("이미 종료된 경매는 수정할 수 없습니다.");
+      navigate("/my-auctions");
+      return;
+    }
+
     // 상세 조회로 설명(description)까지 보강. 검수중(미공개) 경매는 에러가 날 수 있어
     // state 데이터가 있으면 무시하고 진행, 없으면 목록으로 되돌린다.
     getAuctionDetail(Number(auctionId))
       .then((detail) => {
+        // 직접 URL 진입 등으로 종료된 경매에 들어온 경우 차단
+        if (!isAuctionEditable(detail.status, detail.endedAt)) {
+          toast.error("이미 종료된 경매는 수정할 수 없습니다.");
+          navigate("/my-auctions");
+          return;
+        }
         setCard({ name: detail.cardName, grade: detail.grade, imageUrl: detail.cardImageUrl });
         setTitle((prev) => prev || detail.title);
         setDescription(detail.description ?? "");

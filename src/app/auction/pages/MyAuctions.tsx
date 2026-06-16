@@ -7,7 +7,7 @@ import { getMyAuctions, cancelAuction } from "@/api/auction/auctionApi";
 import { getMyLikes } from "@/api/auction/likeApi";
 import type { AuctionListItem } from "@/types/auction.types";
 import type { LikeResponse } from "@/types/like.types";
-import { formatKST } from "@/shared/lib/datetime";
+import { formatKST, serverTime } from "@/shared/lib/datetime";
 
 function gradeBadgeClass(grade: string) {
   if (grade === "PSA_10") return "bg-amber-400/20 text-amber-300 border-amber-400/40";
@@ -35,11 +35,24 @@ function isAuctionViewable(status: string) {
   return !PRE_PUBLISH_STATUSES.includes(status);
 }
 
+/** 이미 끝난(수정 불가) 상태 */
+const ENDED_STATUSES = ["ENDED", "PAYMENT_PENDING", "CANCELLED", "REJECTED", "NO_BIDDER"];
+
+/**
+ * 수정 가능 여부. 종료/취소 등 끝난 상태는 물론, 상태가 아직 ACTIVE 라도
+ * 마감 시각이 지났으면(서버가 ENDED 로 갱신하기 전) 사실상 종료로 보고 수정을 막는다.
+ */
+function isAuctionEditable(a: AuctionListItem) {
+  if (ENDED_STATUSES.includes(a.status)) return false;
+  if (a.status === "ACTIVE" && serverTime(a.endedAt) <= Date.now()) return false;
+  return true;
+}
+
 function formatDate(iso: string) {
   return formatKST(iso, { month: "2-digit", day: "2-digit" });
 }
 
-function AuctionCard({ auction, onClick, onEdit, onCancel, cancelling }: { auction: AuctionListItem; onClick: () => void; onEdit: () => void; onCancel?: () => void; cancelling?: boolean }) {
+function AuctionCard({ auction, onClick, onEdit, onCancel, cancelling }: { auction: AuctionListItem; onClick: () => void; onEdit?: () => void; onCancel?: () => void; cancelling?: boolean }) {
   const status = STATUS_CONFIG[auction.status] ?? { label: auction.status, color: "bg-white/10 text-white/50 border-white/20" };
   const viewable = isAuctionViewable(auction.status);
   return (
@@ -78,12 +91,14 @@ function AuctionCard({ auction, onClick, onEdit, onCancel, cancelling }: { aucti
             {formatDate(auction.endedAt)}
           </div>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          className="mt-1 w-full flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-[#CC0000] border border-border hover:border-[#CC0000]/40 rounded-lg py-1.5 transition-colors"
-        >
-          <Pencil className="w-3 h-3" /> 수정
-        </button>
+        {onEdit && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="mt-1 w-full flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-[#CC0000] border border-border hover:border-[#CC0000]/40 rounded-lg py-1.5 transition-colors"
+          >
+            <Pencil className="w-3 h-3" /> 수정
+          </button>
+        )}
         {onCancel && (
           <button
             onClick={(e) => { e.stopPropagation(); onCancel(); }}
@@ -264,7 +279,7 @@ export function MyAuctions() {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {activeAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={() => editAuction(a)} />
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={isAuctionEditable(a) ? () => editAuction(a) : undefined} />
                   ))}
                 </div>
               )}
@@ -284,7 +299,7 @@ export function MyAuctions() {
                       key={a.auctionId}
                       auction={a}
                       onClick={() => openAuction(a)}
-                      onEdit={() => editAuction(a)}
+                      onEdit={isAuctionEditable(a) ? () => editAuction(a) : undefined}
                       onCancel={a.status === "PENDING" ? () => handleCancel(a) : undefined}
                       cancelling={cancellingId === a.auctionId}
                     />
@@ -303,7 +318,7 @@ export function MyAuctions() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {endedAuctions.map(a => (
-                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} onEdit={() => editAuction(a)} />
+                    <AuctionCard key={a.auctionId} auction={a} onClick={() => openAuction(a)} />
                   ))}
                 </div>
               </div>
