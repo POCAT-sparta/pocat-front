@@ -28,6 +28,13 @@ const SORT_OPTIONS = [
   { label: "낮은 시작가", value: "startingPrice,asc"  },
 ];
 
+const STATUS_OPTIONS = [
+  { label: "진행중",       value: "ACTIVE"    },
+  { label: "종료됨(낙찰)", value: "ENDED"     },
+  { label: "유찰",         value: "NO_BIDDER" },
+] as const;
+type StatusOption = typeof STATUS_OPTIONS[number]["value"];
+
 const CATEGORY_OPTIONS = [
   { label: "전체", value: "" },
   { label: "포켓몬", value: "POKEMON" },
@@ -130,6 +137,7 @@ export function Home() {
   const [sort,        setSort]        = useState("endedAt,asc");
   const [keyword,     setKeyword]     = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [auctionStatus, setAuctionStatus] = useState<StatusOption>("ACTIVE");
 
   const [likedIds,        setLikedIds]        = useState<Set<number>>(new Set());
   const [myLikes,         setMyLikes]         = useState<LikeResponse[]>([]);
@@ -160,7 +168,7 @@ export function Home() {
         grade:   grade    || undefined,
         cardCategory: category ? (category as "POKEMON" | "TRAINERS" | "ENERGY" | "UNKNOWN") : undefined,
         sort,
-        status: "ACTIVE",
+        status: auctionStatus,
         page: targetPage,
         size: PAGE_SIZE,
       });
@@ -168,9 +176,9 @@ export function Home() {
       // 백엔드가 status 필터를 무시하는 경우를 대비한 방어용 클라이언트 필터.
       // 진행 중(ACTIVE)이면서 마감 시각이 지나지 않은 경매만 노출한다.
       const now = Date.now();
-      const activeContent = res.content.filter(
-        (a) => a.status === "ACTIVE" && serverTime(a.endedAt) > now
-      );
+      const activeContent = auctionStatus === "ACTIVE"
+        ? res.content.filter((a) => a.status === "ACTIVE" && serverTime(a.endedAt) > now)
+        : res.content;
       console.log("res : " , res)
       console.log("reset : " , reset)
       if (reset) {
@@ -190,12 +198,12 @@ export function Home() {
       setIsLoadingMore(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grade, category, sort, keyword, page]);
+  }, [grade, category, sort, keyword, page, auctionStatus]);
 
   useEffect(() => {
     fetchAuctions(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grade, category, sort, keyword]);
+  }, [grade, category, sort, keyword, auctionStatus]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -255,9 +263,9 @@ export function Home() {
 
   // 진행 중(ACTIVE)이면서 아직 마감 시각이 지나지 않은 경매만 노출한다.
   // fetch 시점뿐 아니라 nowTs 틱마다 재평가되어, 보는 중에 종료된 경매도 사라진다.
-  const visibleAuctions = auctions.filter(
-    (a) => a.status === "ACTIVE" && serverTime(a.endedAt) > nowTs
-  );
+  const visibleAuctions = auctionStatus === "ACTIVE"
+    ? auctions.filter((a) => a.status === "ACTIVE" && serverTime(a.endedAt) > nowTs)
+    : auctions;
   const visibleMyAuctions = myAuctions.filter(
     (a) => a.status === "ACTIVE" && serverTime(a.endedAt) > nowTs
   );
@@ -358,6 +366,16 @@ export function Home() {
             className="bg-white/10 border-0 rounded-lg px-2 py-1.5 text-xs text-white cursor-pointer"
           >
             {CATEGORY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value} className="text-black">{o.label}</option>
+            ))}
+          </select>
+
+          <select
+            value={auctionStatus}
+            onChange={(e) => { setAuctionStatus(e.target.value as StatusOption); }}
+            className="bg-white/10 border-0 rounded-lg px-2 py-1.5 text-xs text-white cursor-pointer"
+          >
+            {STATUS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value} className="text-black">{o.label}</option>
             ))}
           </select>
@@ -484,7 +502,11 @@ export function Home() {
         <section>
           <SectionHeader
             emoji="⚡"
-            title={keyword ? `"${keyword}" 검색 결과` : "진행 중인 경매"}
+            title={keyword
+              ? `"${keyword}" 검색 결과`
+              : auctionStatus === "ACTIVE" ? "진행 중인 경매"
+              : auctionStatus === "ENDED"  ? "종료된 경매 (낙찰)"
+              : "유찰된 경매"}
           />
 
           {isLoading ? (
@@ -531,22 +553,28 @@ export function Home() {
                         grade={auction.grade as CardGrade}
                         className="w-full"
                       />
-                      <span className="absolute top-2 left-2 bg-[#CC0000] text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10 shadow">
-                        경매중
+                      <span className={`absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-full z-10 shadow text-white ${
+                        auction.status === "ACTIVE" ? "bg-[#CC0000]"
+                        : auction.status === "ENDED" ? "bg-slate-500"
+                        : "bg-amber-600"
+                      }`}>
+                        {auction.status === "ACTIVE" ? "경매중" : auction.status === "ENDED" ? "낙찰" : "유찰"}
                       </span>
-                      <button
-                        onClick={(e) => handleToggleLike(e, auction.auctionId)}
-                        title={isAuthenticated ? "관심 경매 추가" : "로그인 후 이용"}
-                        className="absolute top-2 right-2 w-8 h-8 bg-white/90 dark:bg-black/70 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-20"
-                      >
-                        <Heart
-                          className={`w-4 h-4 transition-colors ${
-                            likedIds.has(auction.auctionId)
-                              ? "text-rose-500 fill-rose-500"
-                              : "text-muted-foreground"
-                          }`}
-                        />
-                      </button>
+                      {auctionStatus === "ACTIVE" && (
+                        <button
+                          onClick={(e) => handleToggleLike(e, auction.auctionId)}
+                          title={isAuthenticated ? "관심 경매 추가" : "로그인 후 이용"}
+                          className="absolute top-2 right-2 w-8 h-8 bg-white/90 dark:bg-black/70 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-20"
+                        >
+                          <Heart
+                            className={`w-4 h-4 transition-colors ${
+                              likedIds.has(auction.auctionId)
+                                ? "text-rose-500 fill-rose-500"
+                                : "text-muted-foreground"
+                            }`}
+                          />
+                        </button>
+                      )}
                     </div>
 
                     <div className="mt-3 space-y-1.5">
@@ -567,10 +595,16 @@ export function Home() {
                           즉시구매 {auction.buyoutPrice.toLocaleString()}원
                         </p>
                       )}
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Clock className="w-3 h-3 shrink-0 text-[#CC0000]" />
-                        <CountdownTimer endedAt={auction.endedAt} />
-                      </div>
+                      {auctionStatus === "ACTIVE" ? (
+                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Clock className="w-3 h-3 shrink-0 text-[#CC0000]" />
+                          <CountdownTimer endedAt={auction.endedAt} />
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(auction.endedAt).toLocaleDateString("ko-KR")} 종료
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -597,7 +631,11 @@ export function Home() {
             <SectionHeader emoji="💰" title="최근 등록 카드" />
             <div className="flex gap-4 overflow-x-auto pb-3">
               {recentCards.map((card) => (
-                <div key={card.id} className="flex-shrink-0 w-40 flex flex-col">
+                <Link
+                  key={card.id}
+                  to={`/cards/${card.id}`}
+                  className="flex-shrink-0 w-40 flex flex-col cursor-pointer hover:opacity-90 transition-opacity"
+                >
                   <CardItem imageUrl={card.imageUrl ?? ""} name={card.name} grade={card.grade} className="w-full" />
                   <div className="mt-2 space-y-0.5">
                     <p className="text-xs font-semibold line-clamp-1">{card.name}</p>
@@ -606,7 +644,7 @@ export function Home() {
                       {card.grade}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </section>
