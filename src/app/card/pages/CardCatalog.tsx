@@ -156,7 +156,8 @@ export function CardCatalog() {
     else setIsLoadingMore(true);
     try {
       const res = await getCards({ keyword, grade, category, series: seriesName, setName, page: nextPage, size: PAGE_SIZE });
-      setCards((prev) => (reset ? res.content : [...prev, ...res.content]));
+      const withImage = res.content.filter((c) => c.imageUrl);
+      setCards((prev) => (reset ? withImage : [...prev, ...withImage]));
       setPage(nextPage);
       setTotalPages(res.totalPages);
     } catch {

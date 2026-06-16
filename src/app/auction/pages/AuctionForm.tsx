@@ -78,7 +78,8 @@ export function AuctionForm() {
         page: nextPage,
         size: CARD_PAGE_SIZE,
       });
-      setCards((prev) => (reset ? res.content : [...prev, ...res.content]));
+      const withImage = res.content.filter((c) => c.imageUrl);
+      setCards((prev) => (reset ? withImage : [...prev, ...withImage]));
       setCardPage(nextPage);
       setCardTotalPages(res.totalPages);
     } catch {
