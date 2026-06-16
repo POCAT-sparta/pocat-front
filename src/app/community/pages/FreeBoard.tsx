@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { MessageSquare, Eye, PenLine, Search, ChevronRight, TrendingUp } from "lucide-react";
-import { getPosts } from "@/api/community/freeCommunityApi";
+import { MessageSquare, Eye, PenLine, Search, ChevronRight, TrendingUp, Flame } from "lucide-react";
+import { getPosts, getPopularPosts } from "@/api/community/freeCommunityApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import type { FreePostResponse } from "@/types/community.types";
 import { formatKST, KST_TIME_ZONE } from "@/shared/lib/datetime";
@@ -27,6 +27,7 @@ export function FreeBoard() {
   const navigate = useNavigate();
 
   const [posts, setPosts]               = useState<FreePostResponse[]>([]);
+  const [popular, setPopular]           = useState<FreePostResponse[]>([]);
   const [total, setTotal]               = useState(0);
   const [page, setPage]                 = useState(0);
   const [hasMore, setHasMore]           = useState(false);
@@ -51,6 +52,13 @@ export function FreeBoard() {
   }, [sort, keyword, page]);
 
   useEffect(() => { fetchPosts(true); }, [sort, keyword]); // eslint-disable-line
+
+  // 인기 게시물 — 검색·정렬과 무관하게 최초 1회 조회
+  useEffect(() => {
+    getPopularPosts(5)
+      .then(setPopular)
+      .catch(() => { /* ignore */ });
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,6 +114,43 @@ export function FreeBoard() {
 
       {/* ── Post list ────────────────────────────────────────────────────── */}
       <div className="container mx-auto px-4 py-6 max-w-3xl">
+
+        {/* ── Popular posts ─────────────────────────────────────────────── */}
+        {!keyword && popular.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Flame className="w-4 h-4 text-[#CC0000]" />
+              <h2 className="text-sm font-extrabold uppercase tracking-wide">인기 게시물</h2>
+            </div>
+            <div className="rounded-2xl border border-[#CC0000]/20 bg-[#CC0000]/[0.03] overflow-hidden divide-y divide-border">
+              {popular.map((post, idx) => (
+                <Link
+                  key={post.id}
+                  to={`/free/${post.id}`}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-[#CC0000]/5 transition-colors group"
+                >
+                  <span className={`w-6 text-center shrink-0 text-sm font-extrabold tabular-nums ${idx < 3 ? "text-[#CC0000]" : "text-muted-foreground"}`}>
+                    {idx + 1}
+                  </span>
+                  <p className="flex-1 min-w-0 text-sm font-medium line-clamp-1 group-hover:text-[#CC0000] transition-colors">
+                    {post.title}
+                  </p>
+                  <div className="flex items-center gap-3 shrink-0 text-[11px] text-muted-foreground">
+                    {post.commentCount > 0 && (
+                      <span className="flex items-center gap-1 text-[#CC0000] font-medium">
+                        <MessageSquare className="w-3 h-3" />{post.commentCount}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-3 h-3" />{post.viewCount}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 10 }).map((_, i) => (
