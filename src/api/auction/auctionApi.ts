@@ -29,6 +29,14 @@ export async function getAuctions(params: AuctionListParams = {}): Promise<PageR
   return res.data;
 }
 
+export async function getPopularAuctions(size = 10): Promise<AuctionListItem[]> {
+  const res = await apiClient.get<ApiResponse<AuctionListItem[]>>(
+    `/api/v1/auctions/popular?size=${size}`,
+    { skipAuth: true }
+  );
+  return res.data;
+}
+
 export async function getMyAuctions(params: MyAuctionParams = {}): Promise<PageResponse<AuctionListItem>> {
   const query = new URLSearchParams();
   if (params.status) query.set("status", params.status);

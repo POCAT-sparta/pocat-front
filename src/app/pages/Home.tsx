@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { AlertTriangle, Ban, ChevronRight, Clock, Heart, Search, Zap } from "lucide-react";
 import { CardItem } from "@/app/card/components/CardItem";
-import { getAuctions, getMyAuctions } from "@/api/auction/auctionApi";
+import { getAuctions, getMyAuctions, getPopularAuctions } from "@/api/auction/auctionApi";
 import { getMyLikes, toggleLike } from "@/api/auction/likeApi";
 import { getCards } from "@/api/card/cardApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
@@ -146,6 +146,9 @@ export function Home() {
   const [myAuctions,          setMyAuctions]          = useState<AuctionListItem[]>([]);
   const [isMyAuctionsLoading, setIsMyAuctionsLoading] = useState(false);
 
+  const [popularAuctions,      setPopularAuctions]      = useState<AuctionListItem[]>([]);
+  const [isPopularLoading,     setIsPopularLoading]     = useState(true);
+
   const [recentCards,    setRecentCards]    = useState<CardResponse[]>([]);
   const [isCardsLoading, setIsCardsLoading] = useState(true);
 
@@ -234,6 +237,14 @@ export function Home() {
       .finally(() => setIsCardsLoading(false));
   }, []);
 
+  useEffect(() => {
+    setIsPopularLoading(true);
+    getPopularAuctions(10)
+      .then(setPopularAuctions)
+      .catch(() => {})
+      .finally(() => setIsPopularLoading(false));
+  }, []);
+
   async function handleToggleLike(e: React.MouseEvent, auctionId: number) {
     e.preventDefault();
     e.stopPropagation();
@@ -267,6 +278,9 @@ export function Home() {
     ? auctions.filter((a) => a.status === "ACTIVE" && serverTime(a.endedAt) > nowTs)
     : auctions;
   const visibleMyAuctions = myAuctions.filter(
+    (a) => a.status === "ACTIVE" && serverTime(a.endedAt) > nowTs
+  );
+  const visiblePopularAuctions = popularAuctions.filter(
     (a) => a.status === "ACTIVE" && serverTime(a.endedAt) > nowTs
   );
 
@@ -423,6 +437,41 @@ export function Home() {
             )}
           </div>
         )}
+
+        {/* ── Popular auctions (auction API: getPopularAuctions) ─────────── */}
+        <section>
+          <SectionHeader emoji="🔥" title="인기 경매" />
+          {isPopularLoading ? (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-32 animate-pulse">
+                  <div className="aspect-[2/3] bg-muted rounded-xl mb-2" />
+                  <div className="h-2.5 bg-muted rounded w-3/4 mb-1" />
+                  <div className="h-2.5 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : visiblePopularAuctions.length === 0 ? (
+            <div className="flex items-center gap-3 py-4 px-5 bg-orange-50 dark:bg-orange-950/20 rounded-xl border border-orange-100 dark:border-orange-900 text-sm text-orange-600 dark:text-orange-300">
+              <span className="text-2xl">🔥</span>
+              아직 인기 경매가 없습니다.
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {visiblePopularAuctions.map((auction) => (
+                <AuctionMiniCard
+                  key={auction.auctionId}
+                  imageUrl={auction.cardImageUrl}
+                  cardName={auction.cardName}
+                  grade={auction.grade}
+                  highestPrice={auction.highestPrice ?? auction.startingPrice}
+                  endedAt={auction.endedAt}
+                  to={`/auctions/${auction.auctionId}`}
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* ── My liked auctions (like API: getMyLikes) ──────────────────── */}
         {isAuthenticated && (
