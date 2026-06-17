@@ -8,7 +8,7 @@ import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
 import { isPayable, isPaymentExpired, isRefundable, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderDetail as OrderDetailType } from "@/types/order.types";
-import { formatKST } from "@/shared/lib/datetime";
+import { formatKST, serverTime } from "@/shared/lib/datetime";
 
 function formatDate(iso: string) {
   return formatKST(iso, {
@@ -18,6 +18,24 @@ function formatDate(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function PaymentCountdown({ deadline }: { deadline: string }) {
+  const [timeLeft, setTimeLeft] = useState("");
+  useEffect(() => {
+    const update = () => {
+      const d = serverTime(deadline) - Date.now();
+      if (d <= 0) { setTimeLeft("마감"); return; }
+      const h = Math.floor(d / 3600000);
+      const m = Math.floor((d % 3600000) / 60000);
+      const s = Math.floor((d % 60000) / 1000);
+      setTimeLeft(`${h}시간 ${m}분 ${s}초`);
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [deadline]);
+  return <span>{timeLeft}</span>;
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -166,6 +184,11 @@ export function OrderDetail() {
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 text-sm text-blue-300">
             ⚡ 결제가 완료되지 않은 주문입니다. <strong>1시간 내</strong>에 직접 결제를 완료해주세요.
             기한이 지나면 다음 순위 입찰자에게 기회가 넘어갈 수 있습니다.
+            {order.paymentDeadline && (
+              <p className="mt-2 font-bold text-base text-blue-200">
+                남은 시간: <PaymentCountdown deadline={order.paymentDeadline} />
+              </p>
+            )}
           </div>
         )}
 
