@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Receipt, CreditCard, AlertTriangle } from "lucide-react";
+import { Receipt, CreditCard, AlertTriangle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { getMyOrders } from "@/api/order/orderApi";
 import { useAuth } from "@/app/auth/context/AuthContext";
 import { usePortonePayment } from "@/app/payment/hooks/usePortonePayment";
 import { isPayable, isPaid, isPaymentExpired, statusMeta } from "@/app/order/lib/orderStatus";
 import type { OrderListItem } from "@/types/order.types";
-import { formatKST } from "@/shared/lib/datetime";
+import { formatKST, serverTime } from "@/shared/lib/datetime";
 
 type TabKey = "ALL" | "PENDING" | "UNPAID" | "COMPLETED";
 
@@ -24,6 +24,24 @@ function formatDate(iso: string) {
     month: "2-digit",
     day: "2-digit",
   });
+}
+
+function PaymentCountdown({ deadline }: { deadline: string }) {
+  const [timeLeft, setTimeLeft] = useState("");
+  useEffect(() => {
+    const update = () => {
+      const d = serverTime(deadline) - Date.now();
+      if (d <= 0) { setTimeLeft("마감"); return; }
+      const h = Math.floor(d / 3600000);
+      const m = Math.floor((d % 3600000) / 60000);
+      const s = Math.floor((d % 60000) / 1000);
+      setTimeLeft(`${h}시간 ${m}분 ${s}초`);
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [deadline]);
+  return <span>{timeLeft}</span>;
 }
 
 export function MyOrders() {
@@ -194,6 +212,12 @@ export function MyOrders() {
                     <p className="text-sm font-extrabold text-[#CC0000] mt-1">
                       {order.finalPrice.toLocaleString()}원
                     </p>
+                    {payable && order.paymentDeadline && (
+                      <p className="flex items-center gap-1 text-[11px] text-amber-500 font-medium mt-1">
+                        <Clock className="w-3 h-3 shrink-0" />
+                        직접결제 남은시간 <PaymentCountdown deadline={order.paymentDeadline} />
+                      </p>
+                    )}
                   </Link>
 
                   {payable && (
