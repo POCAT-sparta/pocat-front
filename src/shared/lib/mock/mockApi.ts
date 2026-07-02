@@ -19,6 +19,10 @@ import {
   mockSets,
   createMockAuction,
   type CreateAuctionBody,
+  mockOrderList,
+  mockOrderDetail,
+  createMockPayment,
+  confirmMockPayment,
 } from "./mockData";
 
 function ok<T>(data: T): ApiResponse<T> {
@@ -95,6 +99,17 @@ export function resolveMock(
       } as CreateAuctionBody);
       return ok(created);
     }
+    if (pathOnly === "/api/v1/payments") {
+      const b = parseBody(body);
+      return ok(createMockPayment(Number(b.orderId)));
+    }
+    return null;
+  }
+
+  // ── 쓰기(PATCH) — 결제 확정 ────────────────────────────────────────
+  if (method === "PATCH") {
+    const pay = pathOnly.match(/^\/api\/v1\/payments\/(.+)$/);
+    if (pay) return ok(confirmMockPayment(decodeURIComponent(pay[1])));
     return null;
   }
 
@@ -111,6 +126,27 @@ export function resolveMock(
   if (path === "/api/v1/users/me") return ok(mockUser);
   if (path === "/api/v1/series") return ok(mockSeries);
   if (path === "/api/v1/sets") return ok(mockSets);
+
+  // ── 주문 ───────────────────────────────────────────────────────────
+  const orderSingle = path.match(/^\/api\/v1\/orders\/(.+)$/);
+  if (orderSingle && orderSingle[1] !== "me") {
+    const detail = mockOrderDetail(decodeURIComponent(orderSingle[1]));
+    if (!detail) return null;
+    return ok(detail);
+  }
+  if (path === "/api/v1/orders/me") {
+    const items = mockOrderList(q.get("status") ?? undefined);
+    const start = page * size;
+    const content = items.slice(start, start + size);
+    // 주문은 백엔드 PageResponseDto 형태(pageNumber)를 사용한다.
+    return ok({
+      content,
+      pageNumber: page,
+      size,
+      totalElements: items.length,
+      totalPages: Math.max(1, Math.ceil(items.length / size)),
+    });
+  }
 
   // ── /api/v1/cards ...──────────────────────────────────────────────
   const cardAuctions = path.match(/^\/api\/v1\/cards\/(\d+)\/auctions$/);
@@ -171,6 +207,15 @@ export function resolveMock(
   }
 
   // ── /api/v1/auctions ...───────────────────────────────────────────
+  if (path === "/api/v1/auctions/popular") {
+    // 인기 경매: 진행 중 경매를 최고 입찰가 높은 순으로
+    const popular = mockAuctionListItems
+      .filter((a) => a.status === "ACTIVE")
+      .sort((a, b) => (b.highestPrice ?? 0) - (a.highestPrice ?? 0))
+      .slice(0, size);
+    return ok(popular);
+  }
+
   const auctionBids = path.match(/^\/api\/v1\/auctions\/(\d+)\/bids$/);
   if (auctionBids) {
     const auctionId = Number(auctionBids[1]);

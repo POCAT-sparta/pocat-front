@@ -7,7 +7,7 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
  * 백엔드가 복구되면 이 값을 false 로 바꾸면 실제 API 를 호출한다.
  * (VITE_USE_MOCK=false 로 빌드 시 비활성화 가능)
  */
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
+export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
 
 function getCookie(name: string) {
   return document.cookie

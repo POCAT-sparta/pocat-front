@@ -86,6 +86,8 @@ export const mockCards: CardResponse[] = CARD_SEED.map((seed, i) => ({
   imageUrl: seed.image,
   source: "TCGDEX",
   status: "ACTIVE",
+  cardDetailName: seed.name,
+  cardDetailNameKo: null,
   // 최근 등록 카드가 자연스러운 순서로 보이도록 최신 카드일수록 최근에 등록
   createdAt: utcWallClock(now - (CARD_SEED.length - i) * 6 * HOUR),
   updatedAt: utcWallClock(now - (CARD_SEED.length - i) * 6 * HOUR),
@@ -353,4 +355,135 @@ export function mockCardAuctionSummaries(cardId: number): ActiveAuctionSummary[]
       startedAt: a.startedAt,
       endedAt: a.endedAt,
     }));
+}
+
+// ── 주문 / 결제 ─────────────────────────────────────────────────────────────
+import type { OrderDetail, OrderListItem, OrderStatus } from "@/types/order.types";
+
+const MIN = 60_000;
+
+/**
+ * 마이페이지 데모용 주문.
+ * - AUTO_FAIL: 즉시구매 빌링키 자동결제가 실패해 "직접 결제" 창(1시간)이 부여된 주문
+ * - PROMOTED: 낙찰자가 결제하지 않아 차순위(2순위)로 승격되어 결제 가능해진 주문
+ * - 나머지: 이미 결제 완료된 주문(탭 구경용)
+ */
+function makeOrder(opts: {
+  orderId: number;
+  orderUid: string;
+  cardIndex: number;
+  finalPrice: number;
+  orderStatus: OrderStatus;
+  paymentDeadlineMinFromNow: number | null;
+  createdMinAgo: number;
+  cancelReason?: string | null;
+}): OrderDetail {
+  const card = mockCards[opts.cardIndex];
+  return {
+    orderId: opts.orderId,
+    orderUid: opts.orderUid,
+    auctionId: 1000 + opts.orderId,
+    buyer: { nickname: mockUser.nickname },
+    seller: { nickname: NICKNAMES[opts.orderId % NICKNAMES.length] },
+    card: { name: card.name, grade: card.grade, imageUrl: card.imageUrl },
+    finalPrice: opts.finalPrice,
+    orderStatus: opts.orderStatus,
+    paymentDeadline:
+      opts.paymentDeadlineMinFromNow == null
+        ? null
+        : utcWallClock(now + opts.paymentDeadlineMinFromNow * MIN),
+    deliveryStatus: null,
+    cancelReason: opts.cancelReason ?? null,
+    createdAt: utcWallClock(now - opts.createdMinAgo * MIN),
+    updatedAt: utcWallClock(now - opts.createdMinAgo * MIN),
+  };
+}
+
+const mockOrders: OrderDetail[] = [
+  // 1) 자동결제 실패 → 직접 결제 가능 (남은 시간 약 55분)
+  makeOrder({
+    orderId: 5001,
+    orderUid: "ORD-AUTOFAIL-5001",
+    cardIndex: 1, // Serperior VSTAR
+    finalPrice: 320_000,
+    orderStatus: "AUTO_PAYMENT_FAILED",
+    paymentDeadlineMinFromNow: 55,
+    createdMinAgo: 5,
+  }),
+  // 2) 차순위(2순위) 승격 → 결제 대기, 직접 결제 가능 (남은 시간 약 58분)
+  makeOrder({
+    orderId: 5002,
+    orderUid: "ORD-PROMOTED-5002",
+    cardIndex: 9, // Kyurem V
+    finalPrice: 175_000,
+    orderStatus: "PAYMENT_PENDING",
+    paymentDeadlineMinFromNow: 58,
+    createdMinAgo: 2,
+  }),
+  // 3) 이미 결제 완료된 주문 (탭 구경용)
+  makeOrder({
+    orderId: 5003,
+    orderUid: "ORD-DONE-5003",
+    cardIndex: 16, // Decidueye ex
+    finalPrice: 210_000,
+    orderStatus: "PAYMENT_COMPLETED",
+    paymentDeadlineMinFromNow: null,
+    createdMinAgo: 60 * 24,
+  }),
+];
+
+export function mockOrderList(status?: string): OrderListItem[] {
+  const list = mockOrders
+    .filter((o) => !status || o.orderStatus === status)
+    .map<OrderListItem>((o) => ({
+      orderId: o.orderId,
+      orderUid: o.orderUid,
+      auctionId: o.auctionId,
+      cardName: o.card.name,
+      cardGrade: o.card.grade,
+      cardImageUrl: o.card.imageUrl,
+      finalPrice: o.finalPrice,
+      orderStatus: o.orderStatus,
+      orderType: "AUCTION",
+      paymentDeadline: o.paymentDeadline,
+      deliveryStatus: o.deliveryStatus,
+      createdAt: o.createdAt,
+    }));
+  // 최신순
+  return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function mockOrderDetail(orderUid: string): OrderDetail | undefined {
+  return mockOrders.find((o) => o.orderUid === orderUid);
+}
+
+// paymentUid → orderId 매핑 (createPayment 후 confirmPayment 에서 주문 확정에 사용)
+const paymentToOrder: Record<string, number> = {};
+
+/** 직접 결제 생성: paymentUid 발급 + 결제 금액 반환 */
+export function createMockPayment(orderId: number) {
+  const order = mockOrders.find((o) => o.orderId === orderId);
+  const paymentUid = `PAY-${orderId}-${Date.now()}`;
+  paymentToOrder[paymentUid] = orderId;
+  return {
+    paymentUid,
+    amount: order?.finalPrice ?? 0,
+    orderName: order?.card.name ?? "포켓몬 카드",
+  };
+}
+
+/** 결제 확정: 해당 주문을 결제 완료로 전환 */
+export function confirmMockPayment(paymentUid: string) {
+  const orderId = paymentToOrder[paymentUid];
+  const order = mockOrders.find((o) => o.orderId === orderId);
+  if (order) {
+    order.orderStatus = "PAYMENT_COMPLETED";
+    order.paymentDeadline = null;
+    order.updatedAt = utcWallClock(Date.now());
+  }
+  return {
+    paymentUid,
+    paymentStatus: "COMPLETED",
+    paidAmount: order?.finalPrice ?? 0,
+  };
 }

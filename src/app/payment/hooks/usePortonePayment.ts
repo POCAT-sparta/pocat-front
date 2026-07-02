@@ -1,6 +1,7 @@
 import { useState } from "react";
 import * as PortOne from "@portone/browser-sdk/v2";
 import { confirmPayment, createPayment } from "@/api/payment/paymentApi";
+import { USE_MOCK } from "@/shared/lib/apiClient";
 
 const STORE_ID = import.meta.env.VITE_PORTONE_STORE_ID as string;
 const CHANNEL_KEY = import.meta.env.VITE_PORTONE_CHANNEL_KEY as string;
@@ -50,7 +51,12 @@ export function usePortonePayment() {
     setIsPaying(true);
     try {
       const { paymentUid, amount } = await createPayment({ orderId });
-      await executePortonePayment({ paymentUid, amount, orderName, buyer });
+      // MOCK 모드: 실제 PG 결제창을 열지 않고 곧바로 결제를 확정한다.
+      if (USE_MOCK) {
+        await confirmPayment(paymentUid);
+      } else {
+        await executePortonePayment({ paymentUid, amount, orderName, buyer });
+      }
     } finally {
       setIsPaying(false);
     }
