@@ -1,4 +1,13 @@
+import { resolveMock } from "./mock/mockApi";
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
+
+/**
+ * 백엔드 서버가 내려가 있어 카드/경매 화면을 더미 데이터로 시연한다.
+ * 백엔드가 복구되면 이 값을 false 로 바꾸면 실제 API 를 호출한다.
+ * (VITE_USE_MOCK=false 로 빌드 시 비활성화 가능)
+ */
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
 
 function getCookie(name: string) {
   return document.cookie
@@ -74,6 +83,15 @@ interface RequestOptions extends RequestInit {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { skipAuth, ...fetchOptions } = options;
+
+  if (USE_MOCK) {
+    const mocked = resolveMock(fetchOptions.method ?? "GET", path, fetchOptions.body);
+    if (mocked !== null) {
+      // 실제 네트워크처럼 약간의 지연을 준다 (로딩 스켈레톤 확인용)
+      await new Promise((r) => setTimeout(r, 200));
+      return mocked as T;
+    }
+  }
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
